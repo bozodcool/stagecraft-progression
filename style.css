@@ -64,6 +64,34 @@
     color: var(--SmartThemeQuoteColor);
 }
 
+.stagecraft-help {
+    padding: 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    background: var(--black30a);
+}
+
+.stagecraft-help summary {
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.stagecraft-help div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.stagecraft-help ul {
+    margin: 0 0 4px 18px;
+    padding: 0;
+}
+
+.stagecraft-help li {
+    margin: 2px 0;
+}
+
 .stagecraft-runtime {
     border-left-color: #4ea1ff;
     background: color-mix(in srgb, #4ea1ff 10%, transparent);

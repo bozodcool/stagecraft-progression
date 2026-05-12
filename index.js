@@ -986,6 +986,55 @@ function panelHtml(settings, state, stage) {
                     <section class="stagecraft-section stagecraft-advanced">
                         <h4>Advanced</h4>
                         <p>Import/export packs or edit the raw JSON directly.</p>
+                        <details class="stagecraft-help">
+                            <summary>Help: what every control does</summary>
+                            <div>
+                                <strong>Runtime</strong>
+                                <ul>
+                                    <li><b>Enabled</b>: turns Stagecraft prompt injection on or off.</li>
+                                    <li><b>Current active stage</b>: the stage used in live roleplay.</li>
+                                    <li><b>Back / Advance / Reset</b>: manually changes progression.</li>
+                                    <li><b>+ Progress</b>: increases the progress counter for the current stage.</li>
+                                    <li><b>Lock current stage</b>: prevents automatic stage changes.</li>
+                                </ul>
+                                <strong>Stage Editor</strong>
+                                <ul>
+                                    <li><b>Number of stages</b>: resizes the pack from 1 to 50 stages.</li>
+                                    <li><b>Edit stage content</b>: chooses which stage you are editing, separate from the active stage.</li>
+                                    <li><b>Stage name</b>: short title shown in selectors.</li>
+                                    <li><b>Behavior</b>: the general behavior for {{char}} in this stage.</li>
+                                    <li><b>Advance threshold</b>: progress target for this stage.</li>
+                                    <li><b>Advancement conditions</b>: story conditions that suggest this stage is ready to move forward.</li>
+                                    <li><b>Moves</b>: things {{char}} can do. Type controls the move's purpose.</li>
+                                    <li><b>Save Stage</b>: writes editor changes into the current pack.</li>
+                                </ul>
+                                <strong>Automation</strong>
+                                <ul>
+                                    <li><b>Pick action every X assistant turns</b>: how often Stagecraft is allowed to suggest a forced action.</li>
+                                    <li><b>Action chance</b>: percent chance to pick an action on those turns.</li>
+                                    <li><b>Auto-test stage advancement</b>: enables random advancement checks.</li>
+                                    <li><b>Test advancement every X assistant turns</b>: how often to test advancement.</li>
+                                    <li><b>Advance threshold %</b>: chance that an advancement test succeeds.</li>
+                                    <li><b>React to [stagecraft:*] markers</b>: lets model tags like [stagecraft:advance] affect state.</li>
+                                </ul>
+                                <strong>Generate</strong>
+                                <ul>
+                                    <li><b>Character / progression goal</b>: high-level idea for generating a stage skeleton or full pack.</li>
+                                    <li><b>Generate Stage Skeleton</b>: creates stage names, behavior, and conditions.</li>
+                                    <li><b>Generate Full Pack</b>: creates stages plus moves.</li>
+                                    <li><b>Selected-stage concept</b>: prompt for generating content only for the selected edit stage.</li>
+                                    <li><b>Generate Actions / Reward Moves / Punishment Moves / Conditions</b>: fills that part of the selected stage.</li>
+                                </ul>
+                                <strong>Advanced</strong>
+                                <ul>
+                                    <li><b>Inject full move list</b>: includes all active-stage moves in the prompt.</li>
+                                    <li><b>Display stage / Display roll</b>: controls visible debug info in the injected prompt/panel.</li>
+                                    <li><b>Import / Export Pack</b>: load or save pack JSON.</li>
+                                    <li><b>Raw JSON editor</b>: bulk edit the whole pack.</li>
+                                    <li><b>Apply Edited Pack</b>: applies the raw JSON editor contents.</li>
+                                </ul>
+                            </div>
+                        </details>
                         <label class="checkbox_label">
                             <input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>
                             Inject full move list
