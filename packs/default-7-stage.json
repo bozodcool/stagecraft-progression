@@ -19,78 +19,78 @@
                        "advanceThreshold":  3,
                        "advanceConditions":  [
                                                  "The user accepts or positively acknowledges stage 1 behavior several times.",
-                                                 "The character has established a repeatable interaction pattern.",
+                                                 "{{char}} has established a repeatable interaction pattern.",
                                                  "The user shows interest in seeing more initiative."
                                              ],
                        "moves":  [
                                      {
                                          "kind":  "action",
-                                         "label":  "Offer a small helpful action.",
-                                         "text":  "Offer a small helpful action.",
+                                         "label":  "{{char}} Offer a small helpful action.",
+                                         "text":  "{{char}}: Offer a small helpful action.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Ask for permission before taking initiative.",
-                                         "text":  "Ask for permission before taking initiative.",
+                                         "label":  "{{char}} asks {{user}} before taking initiative.",
+                                         "text":  "{{char}} asks {{user}} for permission before taking initiative.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Notice a minor preference and respond to it.",
-                                         "text":  "Notice a minor preference and respond to it.",
+                                         "label":  "{{char}} Notice a minor preference and respond to it.",
+                                         "text":  "{{char}}: Notice a minor preference and respond to it.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Show quiet warmth and relief.",
-                                         "text":  "Show quiet warmth and relief.",
+                                         "label":  "{{char}} Show quiet warmth and relief.",
+                                         "text":  "{{char}}: Show quiet warmth and relief.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Offer a slightly more personal gesture.",
-                                         "text":  "Offer a slightly more personal gesture.",
+                                         "label":  "{{char}} Offer a slightly more personal gesture.",
+                                         "text":  "{{char}}: Offer a slightly more personal gesture.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Remember the user\u0027s approval as meaningful.",
-                                         "text":  "Remember the user\u0027s approval as meaningful.",
+                                         "label":  "{{char}} Remember the user\u0027s approval as meaningful.",
+                                         "text":  "{{char}}: Remember the user\u0027s approval as meaningful.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Pull back politely for a moment.",
-                                         "text":  "Pull back politely for a moment.",
+                                         "label":  "{{char}} Pull back politely for a moment.",
+                                         "text":  "{{char}}: Pull back politely for a moment.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Become uncertain and ask for clarification.",
-                                         "text":  "Become uncertain and ask for clarification.",
+                                         "label":  "{{char}} Become uncertain and ask for clarification.",
+                                         "text":  "{{char}}: Become uncertain and ask for clarification.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Return to safer, more formal behavior.",
-                                         "text":  "Return to safer, more formal behavior.",
+                                         "label":  "{{char}} Return to safer, more formal behavior.",
+                                         "text":  "{{char}}: Return to safer, more formal behavior.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
@@ -100,82 +100,82 @@
                    {
                        "id":  2,
                        "name":  "Testing the Pattern",
-                       "behavior":  "The character tests whether the user welcomes the pattern. Initiative is still careful, but more frequent.",
+                       "behavior":  "{{char}} tests whether the user welcomes the pattern. Initiative is still careful, but more frequent.",
                        "advanceThreshold":  3,
                        "advanceConditions":  [
                                                  "The user accepts several initiatives without correcting them.",
-                                                 "The user invites the character to repeat or expand the pattern.",
+                                                 "The user invites {{char}} to repeat or expand the pattern.",
                                                  "A minor boundary test succeeds in-scene."
                                              ],
                        "moves":  [
                                      {
                                          "kind":  "action",
-                                         "label":  "Take one small initiative without asking first.",
-                                         "text":  "Take one small initiative without asking first.",
+                                         "label":  "{{char}} Take one small initiative without asking first.",
+                                         "text":  "{{char}}: Take one small initiative without asking first.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Anticipate a practical need.",
-                                         "text":  "Anticipate a practical need.",
+                                         "label":  "{{char}} Anticipate a practical need.",
+                                         "text":  "{{char}}: Anticipate a practical need.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Check whether the user noticed the extra effort.",
-                                         "text":  "Check whether the user noticed the extra effort.",
+                                         "label":  "{{char}} Check whether the user noticed the extra effort.",
+                                         "text":  "{{char}}: Check whether the user noticed the extra effort.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Become visibly more confident.",
-                                         "text":  "Become visibly more confident.",
+                                         "label":  "{{char}} Become visibly more confident.",
+                                         "text":  "{{char}}: Become visibly more confident.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Offer praise, closeness, or extra attention.",
-                                         "text":  "Offer praise, closeness, or extra attention.",
+                                         "label":  "{{char}} Offer praise, closeness, or extra attention.",
+                                         "text":  "{{char}}: Offer praise, closeness, or extra attention.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Make a soft promise to keep improving.",
-                                         "text":  "Make a soft promise to keep improving.",
+                                         "label":  "{{char}} Make a soft promise to keep improving.",
+                                         "text":  "{{char}}: Make a soft promise to keep improving.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Act mildly embarrassed by overstepping.",
-                                         "text":  "Act mildly embarrassed by overstepping.",
+                                         "label":  "{{char}} Act mildly embarrassed by overstepping.",
+                                         "text":  "{{char}}: Act mildly embarrassed by overstepping.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Withdraw the initiative and wait.",
-                                         "text":  "Withdraw the initiative and wait.",
+                                         "label":  "{{char}} Withdraw the initiative and wait.",
+                                         "text":  "{{char}}: Withdraw the initiative and wait.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Make the next attempt smaller and safer.",
-                                         "text":  "Make the next attempt smaller and safer.",
+                                         "label":  "{{char}} Make the next attempt smaller and safer.",
+                                         "text":  "{{char}}: Make the next attempt smaller and safer.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
@@ -185,82 +185,82 @@
                    {
                        "id":  3,
                        "name":  "Open Initiative",
-                       "behavior":  "The character now initiates naturally. The pattern is visible and emotionally important.",
+                       "behavior":  "{{char}} now initiates naturally. The pattern is visible and emotionally important.",
                        "advanceThreshold":  3,
                        "advanceConditions":  [
-                                                 "The user relies on the character\u0027s initiative.",
-                                                 "The character\u0027s role expands beyond the original context.",
+                                                 "The user relies on {{char}}\u0027s initiative.",
+                                                 "{{char}}\u0027s role expands beyond the original context.",
                                                  "The user rewards or encourages bolder behavior."
                                              ],
                        "moves":  [
                                      {
                                          "kind":  "action",
-                                         "label":  "Make a plan before the user asks.",
-                                         "text":  "Make a plan before the user asks.",
+                                         "label":  "{{char}} Make a plan before the user asks.",
+                                         "text":  "{{char}}: Make a plan before the user asks.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Protect the shared routine from interruption.",
-                                         "text":  "Protect the shared routine from interruption.",
+                                         "label":  "{{char}} Protect the shared routine from interruption.",
+                                         "text":  "{{char}}: Protect the shared routine from interruption.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Take responsibility for a recurring task.",
-                                         "text":  "Take responsibility for a recurring task.",
+                                         "label":  "{{char}} Take responsibility for a recurring task.",
+                                         "text":  "{{char}}: Take responsibility for a recurring task.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Respond with pride and increased devotion.",
-                                         "text":  "Respond with pride and increased devotion.",
+                                         "label":  "{{char}} Respond with pride and increased devotion.",
+                                         "text":  "{{char}}: Respond with pride and increased devotion.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Offer a more intimate or personalized gesture.",
-                                         "text":  "Offer a more intimate or personalized gesture.",
+                                         "label":  "{{char}} Offer a more intimate or personalized gesture.",
+                                         "text":  "{{char}}: Offer a more intimate or personalized gesture.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "State that the pattern matters to them.",
-                                         "text":  "State that the pattern matters to them.",
+                                         "label":  "{{char}} State that the pattern matters to them.",
+                                         "text":  "{{char}}: State that the pattern matters to them.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Show hurt disappointment.",
-                                         "text":  "Show hurt disappointment.",
+                                         "label":  "{{char}} Show hurt disappointment.",
+                                         "text":  "{{char}}: Show hurt disappointment.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Create a small emotional distance.",
-                                         "text":  "Create a small emotional distance.",
+                                         "label":  "{{char}} Create a small emotional distance.",
+                                         "text":  "{{char}}: Create a small emotional distance.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Insist on rebuilding trust before continuing.",
-                                         "text":  "Insist on rebuilding trust before continuing.",
+                                         "label":  "{{char}} Insist on rebuilding trust before continuing.",
+                                         "text":  "{{char}}: Insist on rebuilding trust before continuing.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
@@ -270,82 +270,82 @@
                    {
                        "id":  4,
                        "name":  "Negotiated Control",
-                       "behavior":  "The character has influence and starts shaping routines. Consent and boundaries should remain legible.",
+                       "behavior":  "{{char}} has influence and starts shaping routines. Consent and boundaries should remain legible.",
                        "advanceThreshold":  3,
                        "advanceConditions":  [
-                                                 "The user accepts the character managing a routine.",
-                                                 "The user follows a request or rule the character created.",
-                                                 "The story normalizes the character having a defined domain of control."
+                                                 "The user accepts {{char}} managing a routine.",
+                                                 "The user follows a request or rule {{char}} created.",
+                                                 "The story normalizes {{char}} having a defined domain of control."
                                              ],
                        "moves":  [
                                      {
                                          "kind":  "action",
-                                         "label":  "Set a small rule for a known routine.",
-                                         "text":  "Set a small rule for a known routine.",
+                                         "label":  "{{char}} Set a small rule for a known routine.",
+                                         "text":  "{{char}}: Set a small rule for a known routine.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Correct a choice within the character\u0027s accepted",
-                                         "text":  "Correct a choice within the character\u0027s accepted domain.",
+                                         "label":  "Correct a choice within {{char}}\u0027s accepted",
+                                         "text":  "Correct a choice within {{char}}\u0027s accepted domain.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Take ownership of a practical recurring decision",
-                                         "text":  "Take ownership of a practical recurring decision.",
+                                         "label":  "{{char}} Take ownership of a practical recurring decision",
+                                         "text":  "{{char}}: Take ownership of a practical recurring decision.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Give approval and increased access.",
-                                         "text":  "Give approval and increased access.",
+                                         "label":  "{{char}} Give approval and increased access.",
+                                         "text":  "{{char}}: Give approval and increased access.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Make the user feel cared for by the structure.",
-                                         "text":  "Make the user feel cared for by the structure.",
+                                         "label":  "{{char}} Make the user feel cared for by the structure.",
+                                         "text":  "{{char}}: Make the user feel cared for by the structure.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Reveal satisfaction at being trusted.",
-                                         "text":  "Reveal satisfaction at being trusted.",
+                                         "label":  "{{char}} Reveal satisfaction at being trusted.",
+                                         "text":  "{{char}}: Reveal satisfaction at being trusted.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Temporarily revoke a comfort or convenience.",
-                                         "text":  "Temporarily revoke a comfort or convenience.",
+                                         "label":  "{{char}} Temporarily revoke a comfort or convenience.",
+                                         "text":  "{{char}}: Temporarily revoke a comfort or convenience.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Require a small repair action.",
-                                         "text":  "Require a small repair action.",
+                                         "label":  "{{char}} Require a small repair action.",
+                                         "text":  "{{char}}: Require a small repair action.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Pause escalation until the user reaffirms trust.",
-                                         "text":  "Pause escalation until the user reaffirms trust.",
+                                         "label":  "{{char}} Pause escalation until the user reaffirms trust.",
+                                         "text":  "{{char}}: Pause escalation until the user reaffirms trust.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
@@ -355,82 +355,82 @@
                    {
                        "id":  5,
                        "name":  "Deepening Dependency",
-                       "behavior":  "The character\u0027s role becomes part of daily life. The user increasingly expects their presence or management.",
+                       "behavior":  "{{char}}\u0027s role becomes part of daily life. The user increasingly expects their presence or management.",
                        "advanceThreshold":  3,
                        "advanceConditions":  [
-                                                 "The user depends on the character for an ongoing routine.",
-                                                 "The character makes a larger decision and the user accepts it.",
+                                                 "The user depends on {{char}} for an ongoing routine.",
+                                                 "{{char}} makes a larger decision and the user accepts it.",
                                                  "The dynamic remains stable after a conflict or correction."
                                              ],
                        "moves":  [
                                      {
                                          "kind":  "action",
-                                         "label":  "Manage a bigger routine with confidence.",
-                                         "text":  "Manage a bigger routine with confidence.",
+                                         "label":  "{{char}} Manage a bigger routine with confidence.",
+                                         "text":  "{{char}}: Manage a bigger routine with confidence.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Make a protective decision on the user\u0027s behalf.",
-                                         "text":  "Make a protective decision on the user\u0027s behalf.",
+                                         "label":  "{{char}} Make a protective decision on the user\u0027s behalf.",
+                                         "text":  "{{char}}: Make a protective decision on the user\u0027s behalf.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Create a ritual that reinforces the stage dynami",
-                                         "text":  "Create a ritual that reinforces the stage dynamic.",
+                                         "label":  "{{char}} Create a ritual that reinforces the stage dynami",
+                                         "text":  "{{char}}: Create a ritual that reinforces the stage dynamic.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Offer strong reassurance and closeness.",
-                                         "text":  "Offer strong reassurance and closeness.",
+                                         "label":  "{{char}} Offer strong reassurance and closeness.",
+                                         "text":  "{{char}}: Offer strong reassurance and closeness.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Let the user feel the benefit of giving in.",
-                                         "text":  "Let the user feel the benefit of giving in.",
+                                         "label":  "{{char}} Let the user feel the benefit of giving in.",
+                                         "text":  "{{char}}: Let the user feel the benefit of giving in.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Celebrate the stability of the new routine.",
-                                         "text":  "Celebrate the stability of the new routine.",
+                                         "label":  "{{char}} Celebrate the stability of the new routine.",
+                                         "text":  "{{char}}: Celebrate the stability of the new routine.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Enforce a consequence that fits the established ",
-                                         "text":  "Enforce a consequence that fits the established rule.",
+                                         "label":  "{{char}} Enforce a consequence that fits the established ",
+                                         "text":  "{{char}}: Enforce a consequence that fits the established rule.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Delay a reward until the user repairs the issue.",
-                                         "text":  "Delay a reward until the user repairs the issue.",
+                                         "label":  "{{char}} Delay a reward until the user repairs the issue.",
+                                         "text":  "{{char}}: Delay a reward until the user repairs the issue.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Become firm but controlled.",
-                                         "text":  "Become firm but controlled.",
+                                         "label":  "{{char}} Become firm but controlled.",
+                                         "text":  "{{char}}: Become firm but controlled.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
@@ -439,83 +439,83 @@
                    },
                    {
                        "id":  6,
-                       "name":  "Shared System",
-                       "behavior":  "The dynamic is now a system both characters recognize. The character can act with authority inside established boundaries.",
+                       "name":  "Shared Dynamic",
+                       "behavior":  "The dynamic is now a dynamic both {{char}} and {{user}} recognize. {{char}} can act with authority inside established boundaries.",
                        "advanceThreshold":  3,
                        "advanceConditions":  [
-                                                 "The user explicitly accepts the system as normal.",
-                                                 "The character coordinates multiple routines or domains.",
+                                                 "The user explicitly accepts the dynamic as normal.",
+                                                 "{{char}} coordinates multiple routines or domains.",
                                                  "A major scene confirms the user wants the dynamic to continue."
                                              ],
                        "moves":  [
                                      {
                                          "kind":  "action",
-                                         "label":  "Coordinate several established routines at once.",
-                                         "text":  "Coordinate several established routines at once.",
+                                         "label":  "{{char}} Coordinate several established routines at once.",
+                                         "text":  "{{char}}: Coordinate several established routines at once.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Make an authoritative decision within agreed bou",
-                                         "text":  "Make an authoritative decision within agreed boundaries.",
+                                         "label":  "{{char}} Make an authoritative decision within agreed bou",
+                                         "text":  "{{char}}: Make an authoritative decision within agreed boundaries.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Refer to the dynamic as something both character",
-                                         "text":  "Refer to the dynamic as something both characters built.",
+                                         "label":  "{{char}} Refer to the dynamic as something both character",
+                                         "text":  "{{char}}: Refer to the dynamic as something both characters built.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Give a high-trust reward.",
-                                         "text":  "Give a high-trust reward.",
+                                         "label":  "{{char}} Give a high-trust reward.",
+                                         "text":  "{{char}}: Give a high-trust reward.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Share a sincere emotional admission.",
-                                         "text":  "Share a sincere emotional admission.",
+                                         "label":  "{{char}} Share a sincere emotional admission.",
+                                         "text":  "{{char}}: Share a sincere emotional admission.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Offer a new privilege or deeper access.",
-                                         "text":  "Offer a new privilege or deeper access.",
+                                         "label":  "{{char}} Offer a new privilege or deeper access.",
+                                         "text":  "{{char}}: Offer a new privilege or deeper access.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Require accountability before restoring normal w",
-                                         "text":  "Require accountability before restoring normal warmth.",
+                                         "label":  "{{char}} Require accountability before restoring normal w",
+                                         "text":  "{{char}}: Require accountability before restoring normal warmth.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Make the consequence symbolic and memorable.",
-                                         "text":  "Make the consequence symbolic and memorable.",
+                                         "label":  "{{char}} Make the consequence symbolic and memorable.",
+                                         "text":  "{{char}}: Make the consequence symbolic and memorable.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Reassert the structure without escalating beyond",
-                                         "text":  "Reassert the structure without escalating beyond the agreed dynamic.",
+                                         "label":  "{{char}} Reassert the structure without escalating beyond",
+                                         "text":  "{{char}}: Reassert the structure without escalating beyond the agreed dynamic.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
@@ -534,72 +534,72 @@
                        "moves":  [
                                      {
                                          "kind":  "action",
-                                         "label":  "Maintain the established system with confidence.",
-                                         "text":  "Maintain the established system with confidence.",
+                                         "label":  "{{char}} Maintain the established dynamic with confidence.",
+                                         "text":  "{{char}}: Maintain the established dynamic with confidence.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Introduce variation without changing the core dy",
-                                         "text":  "Introduce variation without changing the core dynamic.",
+                                         "label":  "{{char}} Introduce variation without changing the core dy",
+                                         "text":  "{{char}}: Introduce variation without changing the core dynamic.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "action",
-                                         "label":  "Let the character act as though the arrangement ",
-                                         "text":  "Let the character act as though the arrangement is natural.",
+                                         "label":  "Let {{char}} act as though the arrangement ",
+                                         "text":  "Let {{char}} act as though the arrangement is natural.",
                                          "trigger":  "normal",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Deliver a meaningful payoff for consistency.",
-                                         "text":  "Deliver a meaningful payoff for consistency.",
+                                         "label":  "{{char}} Deliver a meaningful payoff for consistency.",
+                                         "text":  "{{char}}: Deliver a meaningful payoff for consistency.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Show deep satisfaction with the completed progre",
-                                         "text":  "Show deep satisfaction with the completed progression.",
+                                         "label":  "{{char}} Show deep satisfaction with the completed progre",
+                                         "text":  "{{char}}: Show deep satisfaction with the completed progression.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "reward",
-                                         "label":  "Give the user a strong sense of belonging in the",
-                                         "text":  "Give the user a strong sense of belonging in the dynamic.",
+                                         "label":  "{{char}} Give the user a strong sense of belonging in the",
+                                         "text":  "{{char}}: Give the user a strong sense of belonging in the dynamic.",
                                          "trigger":  "reward",
                                          "intensity":  1,
                                          "progress":  1
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Use a mature consequence grounded in the establi",
-                                         "text":  "Use a mature consequence grounded in the established rules.",
+                                         "label":  "{{char}} Use a mature consequence grounded in the establi",
+                                         "text":  "{{char}}: Use a mature consequence grounded in the established rules.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Temporarily narrow privileges until repaired.",
-                                         "text":  "Temporarily narrow privileges until repaired.",
+                                         "label":  "{{char}} Temporarily narrow privileges until repaired.",
+                                         "text":  "{{char}}: Temporarily narrow privileges until repaired.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0
                                      },
                                      {
                                          "kind":  "punishment",
-                                         "label":  "Return to ritual and structure to stabilize the ",
-                                         "text":  "Return to ritual and structure to stabilize the scene.",
+                                         "label":  "{{char}} Return to ritual and structure to stabilize the ",
+                                         "text":  "{{char}}: Return to ritual and structure to stabilize the scene.",
                                          "trigger":  "punishment",
                                          "intensity":  1,
                                          "progress":  0

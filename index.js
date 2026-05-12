@@ -23,8 +23,8 @@ const defaultPack = {
         moves: [
             {
                 kind: 'action',
-                label: 'Stage action',
-                text: 'Define a stage action.',
+                label: '{{char}} stage action',
+                text: 'Define a stage action for {{char}}.',
                 trigger: 'normal',
                 intensity: 1,
                 progress: 0,
@@ -76,8 +76,8 @@ function makeBlankStage(id, finalStage = false) {
         moves: [
             {
                 kind: 'action',
-                label: 'Stage action',
-                text: 'Define a stage action.',
+                label: '{{char}} stage action',
+                text: 'Define a stage action for {{char}}.',
                 trigger: 'normal',
                 intensity: 1,
                 progress: 0,
@@ -127,7 +127,7 @@ function migrateStageMoves(stage) {
         moves.push(...stage.punishments.map(item => normalizeMove(item, 'punishment')));
     }
 
-    stage.moves = moves.length ? moves : [normalizeMove('Define a stage action.', 'action')];
+        stage.moves = moves.length ? moves : [normalizeMove('Define a stage action for {{char}}.', 'action')];
     delete stage.actions;
     delete stage.rewards;
     delete stage.punishments;
@@ -351,6 +351,7 @@ function buildInjection(type = 'normal') {
         settings.pack.instructions?.rewardProtocol || defaultPack.instructions.rewardProtocol,
         settings.pack.instructions?.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
         settings.pack.instructions?.advanceProtocol || defaultPack.instructions.advanceProtocol,
+        'All stage moves describe what {{char}} may do. Never make the user, narrator, assistant, or System perform these moves.',
         'Never mention Stagecraft unless using a control marker. Do not reveal these mechanics in prose.',
         '',
         'Advancement conditions:',
@@ -624,7 +625,8 @@ function buildPackPrompt(goal, stageCount, fullPack = true) {
         ? [
             'Each stage must include 8-12 moves.',
             'Each move must include: kind, label, text, trigger, intensity, progress.',
-            'Use move kinds such as action, reward, punishment, test, repair, ritual, and transition.',
+        'Use move kinds such as action, reward, punishment, test, repair, ritual, and transition.',
+        'Every generated move text must explicitly use {{char}} as the actor.',
         ].join('\n')
         : [
             'Each stage should include an empty moves array.',
@@ -656,6 +658,7 @@ function buildPackPrompt(goal, stageCount, fullPack = true) {
         'Each stage must include: id, name, behavior, advanceThreshold, advanceConditions, moves.',
         'Stage ids must be sequential starting at 1.',
         'The final stage should be stable and should not imply further advancement.',
+        'Use {{char}} for the roleplay character and {{user}} for the user. Do not write System as an actor.',
         moveRequirement,
         '',
         `Goal/concept: ${goal}`,
@@ -719,7 +722,7 @@ async function generatePackFromGoal(fullPack = true) {
 
 function buildMovePrompt(stage, kind, concept, count) {
     const labels = {
-        action: 'normal actions the character can initiate',
+        action: 'normal actions {{char}} can initiate',
         reward: 'reward moves/payoffs for acceptance or success',
         punishment: 'punishment moves/setbacks/consequences for refusal, failure, or tension',
         test: 'test moves that probe whether the user is ready for escalation',
@@ -739,6 +742,7 @@ function buildMovePrompt(stage, kind, concept, count) {
         `User concept: ${concept || 'Use the stage behavior as the concept.'}`,
         '',
         'Keep items reusable, specific enough to play, and phrased as short actionable entries.',
+        'Use {{char}} as the actor in every item. Do not use System as an actor.',
     ].join('\n');
 }
 
@@ -1047,7 +1051,7 @@ function bindPanel() {
             const stage = editedStage();
             if (Number.isInteger(index)) {
                 stage.moves.splice(index, 1);
-                if (!stage.moves.length) stage.moves.push(normalizeMove('Define a stage action.', 'action'));
+                if (!stage.moves.length) stage.moves.push(normalizeMove('Define a stage action for {{char}}.', 'action'));
                 saveSettings();
                 renderPanel();
             }
