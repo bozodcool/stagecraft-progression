@@ -888,7 +888,7 @@ function panelHtml(settings, state, stage) {
                         </div>
                         <div>${state.progress}/${threshold}</div>
                     </div>
-                    <section class="stagecraft-section">
+                    <section class="stagecraft-section stagecraft-runtime">
                         <h4>Runtime</h4>
                         <p>Controls what the live chat is using right now.</p>
                         <label class="checkbox_label">
@@ -909,7 +909,7 @@ function panelHtml(settings, state, stage) {
                         </label>
                     </section>
 
-                    <section class="stagecraft-section">
+                    <section class="stagecraft-section stagecraft-editor-section">
                         <h4>Stage Editor</h4>
                         <p>Edits stage content. This does not change the active stage unless you choose it above.</p>
                         <label for="stagecraft_stage_count">Number of stages</label>
@@ -919,7 +919,7 @@ function panelHtml(settings, state, stage) {
                         ${stageEditorHtml(editStage)}
                     </section>
 
-                    <section class="stagecraft-section">
+                    <section class="stagecraft-section stagecraft-automation">
                         <h4>Automation</h4>
                         <p>Controls how often moves and stage jumps happen automatically.</p>
                         <label for="stagecraft_action_every">Pick action every X assistant turns</label>
@@ -940,7 +940,7 @@ function panelHtml(settings, state, stage) {
                         </label>
                     </section>
 
-                    <section class="stagecraft-section">
+                    <section class="stagecraft-section stagecraft-generate-section">
                         <h4>Generate</h4>
                         <p>Use the active SillyTavern model to draft stages or fill the selected stage.</p>
                         <div class="stagecraft-generator">
@@ -965,7 +965,7 @@ function panelHtml(settings, state, stage) {
                         </div>
                     </section>
 
-                    <section class="stagecraft-section">
+                    <section class="stagecraft-section stagecraft-advanced">
                         <h4>Advanced</h4>
                         <p>Import/export packs or edit the raw JSON directly.</p>
                         <label class="checkbox_label">
@@ -1006,7 +1006,7 @@ function escapeHtml(value) {
 function stageEditorHtml(stage) {
     const conditions = (stage.advanceConditions || []).join('\n');
     const moveRows = (stage.moves || []).map((move, index) => `
-        <div class="stagecraft-move-row" data-index="${index}">
+        <div class="stagecraft-move-row stagecraft-move-${escapeHtml(move.kind || 'action')}" data-index="${index}">
             <select class="stagecraft_move_kind">
                 ${['action', 'reward', 'punishment', 'test', 'repair', 'ritual', 'transition'].map(kind => `<option value="${kind}" ${move.kind === kind ? 'selected' : ''}>${kind}</option>`).join('')}
             </select>
@@ -1033,6 +1033,15 @@ function stageEditorHtml(stage) {
             <div class="stagecraft-editor-header">
                 <strong>Moves</strong>
                 <button id="stagecraft_add_move" class="menu_button" type="button">Add Move</button>
+            </div>
+            <div class="stagecraft-kind-legend">
+                <span class="stagecraft-chip stagecraft-chip-action">action</span>
+                <span class="stagecraft-chip stagecraft-chip-reward">reward</span>
+                <span class="stagecraft-chip stagecraft-chip-punishment">punishment</span>
+                <span class="stagecraft-chip stagecraft-chip-test">test</span>
+                <span class="stagecraft-chip stagecraft-chip-repair">repair</span>
+                <span class="stagecraft-chip stagecraft-chip-ritual">ritual</span>
+                <span class="stagecraft-chip stagecraft-chip-transition">transition</span>
             </div>
             <div id="stagecraft_move_rows">${moveRows}</div>
             <button id="stagecraft_save_stage" class="menu_button" type="button">Save Stage</button>
