@@ -166,6 +166,15 @@
     border-radius: 4px;
 }
 
+.stagecraft-move-header {
+    display: grid;
+    grid-template-columns: 100px minmax(120px, 1fr) minmax(180px, 2fr) minmax(100px, 1fr) 70px 70px 80px;
+    gap: 6px;
+    color: var(--SmartThemeQuoteColor);
+    font-size: 0.9em;
+    padding: 4px 0 0 9px;
+}
+
 .stagecraft-move-action {
     border-left-color: #4ea1ff;
     background: color-mix(in srgb, #4ea1ff 8%, transparent);
@@ -242,5 +251,9 @@
 
     .stagecraft-move-row {
         grid-template-columns: 1fr;
+    }
+
+    .stagecraft-move-header {
+        display: none;
     }
 }

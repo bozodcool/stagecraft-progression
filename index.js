@@ -87,10 +87,11 @@ function makeBlankStage(id, finalStage = false) {
 }
 
 function moveFromText(text, kind = 'action') {
+    const cleanText = sanitizeActorText(text);
     return {
         kind,
-        label: String(text).slice(0, 48),
-        text: String(text),
+        label: makeMoveLabel(cleanText, kind),
+        text: cleanText,
         trigger: kind === 'action' ? 'normal' : kind,
         intensity: 1,
         progress: kind === 'reward' ? 1 : 0,
@@ -104,12 +105,26 @@ function normalizeMove(move, fallbackKind = 'action') {
 
     return {
         kind: String(move?.kind || fallbackKind || 'action'),
-        label: sanitizeActorText(String(move?.label || move?.title || move?.text || 'Stage move')).slice(0, 80),
+        label: makeMoveLabel(sanitizeActorText(String(move?.label || move?.title || move?.text || 'Stage move')), String(move?.kind || fallbackKind || 'action')),
         text: sanitizeActorText(String(move?.text || move?.description || move?.label || 'Define a stage move.')),
         trigger: sanitizeActorText(String(move?.trigger || move?.when || fallbackKind || 'normal')),
         intensity: Math.max(1, Math.min(10, Math.trunc(Number(move?.intensity) || 1))),
         progress: Math.trunc(Number(move?.progress) || 0),
     };
+}
+
+function makeMoveLabel(text, kind = 'action') {
+    const cleaned = String(text)
+        .replace(/\{\{char\}\}/gi, '')
+        .replace(/\{\{user\}\}/gi, '')
+        .replace(/^[\s:,-]+/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const firstClause = cleaned.split(/[.;:!?]/)[0].trim();
+    const words = firstClause.split(' ').filter(Boolean).slice(0, 4);
+    const label = words.join(' ').replace(/[,\-:;]+$/, '').trim();
+    if (label) return label.charAt(0).toUpperCase() + label.slice(1);
+    return `${kind.charAt(0).toUpperCase()}${kind.slice(1)} move`;
 }
 
 function sanitizeActorText(text) {
@@ -544,7 +559,7 @@ function extractJsonArray(text) {
     const parseAttempts = [];
     try {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
     } catch (error) {
         parseAttempts.push(error.message);
         // Continue with fenced/plain JSON extraction.
@@ -554,7 +569,7 @@ function extractJsonArray(text) {
     if (fenced) {
         try {
             const parsed = JSON.parse(fenced.trim());
-            if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+            if (Array.isArray(parsed)) return parsed.filter(Boolean);
         } catch (error) {
             parseAttempts.push(error.message);
             // Continue with bracket extraction.
@@ -567,7 +582,7 @@ function extractJsonArray(text) {
         const candidate = trimmed.slice(start, end + 1);
         try {
             const parsed = JSON.parse(candidate);
-            if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+            if (Array.isArray(parsed)) return parsed.filter(Boolean);
         } catch (error) {
             parseAttempts.push(error.message);
             const repaired = repairLooseJsonArray(candidate);
@@ -751,9 +766,12 @@ function buildMovePrompt(stage, kind, concept, count) {
 
     return [
         'Generate roleplay progression stage material.',
-        'Return only a valid JSON array of strings. No markdown, no commentary.',
+        'Return only a valid JSON array of objects. No markdown, no commentary.',
         `Write exactly ${count} ${labels[kind] || `${kind} moves`}.`,
-        'Each string must be a concise playable move.',
+        'Each object must include: kind, label, text, trigger, intensity, progress.',
+        `Every object must have "kind": "${kind}".`,
+        'label must be a short title of 2-5 words, not a full sentence.',
+        'text must be the full playable move.',
         '',
         `Stage ID: ${stage.id}`,
         `Stage name: ${stage.name}`,
@@ -1042,6 +1060,15 @@ function stageEditorHtml(stage) {
                 <span class="stagecraft-chip stagecraft-chip-repair">repair</span>
                 <span class="stagecraft-chip stagecraft-chip-ritual">ritual</span>
                 <span class="stagecraft-chip stagecraft-chip-transition">transition</span>
+            </div>
+            <div class="stagecraft-move-header">
+                <span>Type</span>
+                <span>Short label</span>
+                <span>Move text</span>
+                <span>Trigger</span>
+                <span>Intensity</span>
+                <span>Progress</span>
+                <span></span>
             </div>
             <div id="stagecraft_move_rows">${moveRows}</div>
             <button id="stagecraft_save_stage" class="menu_button" type="button">Save Stage</button>
