@@ -1,0 +1,79 @@
+.stagecraft-panel .inline-drawer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stagecraft-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    background: var(--black30a);
+}
+
+.stagecraft-status div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stagecraft-buttons,
+.stagecraft-pack-row,
+.stagecraft-generate-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.stagecraft-pack-row {
+    grid-template-columns: 1fr 1fr;
+}
+
+.stagecraft-generator {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+}
+
+.stagecraft-pack-row input[type="file"] {
+    display: none;
+}
+
+.stagecraft-panel textarea {
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    font-family: var(--monoFontFamily, monospace);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.stagecraft-generator textarea {
+    min-height: 70px;
+}
+
+.stagecraft-busy {
+    opacity: 0.75;
+    pointer-events: none;
+}
+
+.stagecraft-panel .danger {
+    color: var(--warning);
+}
+
+@media (max-width: 700px) {
+    .stagecraft-buttons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stagecraft-generate-buttons {
+        grid-template-columns: 1fr;
+    }
+}

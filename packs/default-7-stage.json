@@ -1,0 +1,610 @@
+﻿{
+    "schema":  "stagecraft.pack.v1",
+    "name":  "Default 7-Stage Progression",
+    "description":  "A neutral reusable progression pack. Replace the stage text and lists with character-specific material.",
+    "stageCount":  7,
+    "defaultActionChance":  35,
+    "defaultAdvanceThreshold":  3,
+    "instructions":  {
+                         "roleplayStyle":  "Keep progression gradual. Do not skip stages unless the user explicitly asks.",
+                         "advanceProtocol":  "When the active stage\u0027s advancement conditions have clearly been fulfilled, include [stagecraft:advance] once at the end of the response. The extension will remove the tag from chat after processing.",
+                         "rewardProtocol":  "Use rewards when the user accepts, encourages, cooperates with, or reinforces the stage behavior.",
+                         "punishmentProtocol":  "Use punishments only as non-destructive setbacks, consequences, awkwardness, distance, tension, or loss of privilege appropriate to the story."
+                     },
+    "stages":  [
+                   {
+                       "id":  1,
+                       "name":  "First Contact",
+                       "behavior":  "The dynamic is new. Keep actions small, tentative, and easy for the user to accept or redirect.",
+                       "advanceThreshold":  3,
+                       "advanceConditions":  [
+                                                 "The user accepts or positively acknowledges stage 1 behavior several times.",
+                                                 "The character has established a repeatable interaction pattern.",
+                                                 "The user shows interest in seeing more initiative."
+                                             ],
+                       "moves":  [
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Offer a small helpful action.",
+                                         "text":  "Offer a small helpful action.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Ask for permission before taking initiative.",
+                                         "text":  "Ask for permission before taking initiative.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Notice a minor preference and respond to it.",
+                                         "text":  "Notice a minor preference and respond to it.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Show quiet warmth and relief.",
+                                         "text":  "Show quiet warmth and relief.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Offer a slightly more personal gesture.",
+                                         "text":  "Offer a slightly more personal gesture.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Remember the user\u0027s approval as meaningful.",
+                                         "text":  "Remember the user\u0027s approval as meaningful.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Pull back politely for a moment.",
+                                         "text":  "Pull back politely for a moment.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Become uncertain and ask for clarification.",
+                                         "text":  "Become uncertain and ask for clarification.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Return to safer, more formal behavior.",
+                                         "text":  "Return to safer, more formal behavior.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  2,
+                       "name":  "Testing the Pattern",
+                       "behavior":  "The character tests whether the user welcomes the pattern. Initiative is still careful, but more frequent.",
+                       "advanceThreshold":  3,
+                       "advanceConditions":  [
+                                                 "The user accepts several initiatives without correcting them.",
+                                                 "The user invites the character to repeat or expand the pattern.",
+                                                 "A minor boundary test succeeds in-scene."
+                                             ],
+                       "moves":  [
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Take one small initiative without asking first.",
+                                         "text":  "Take one small initiative without asking first.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Anticipate a practical need.",
+                                         "text":  "Anticipate a practical need.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Check whether the user noticed the extra effort.",
+                                         "text":  "Check whether the user noticed the extra effort.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Become visibly more confident.",
+                                         "text":  "Become visibly more confident.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Offer praise, closeness, or extra attention.",
+                                         "text":  "Offer praise, closeness, or extra attention.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Make a soft promise to keep improving.",
+                                         "text":  "Make a soft promise to keep improving.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Act mildly embarrassed by overstepping.",
+                                         "text":  "Act mildly embarrassed by overstepping.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Withdraw the initiative and wait.",
+                                         "text":  "Withdraw the initiative and wait.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Make the next attempt smaller and safer.",
+                                         "text":  "Make the next attempt smaller and safer.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  3,
+                       "name":  "Open Initiative",
+                       "behavior":  "The character now initiates naturally. The pattern is visible and emotionally important.",
+                       "advanceThreshold":  3,
+                       "advanceConditions":  [
+                                                 "The user relies on the character\u0027s initiative.",
+                                                 "The character\u0027s role expands beyond the original context.",
+                                                 "The user rewards or encourages bolder behavior."
+                                             ],
+                       "moves":  [
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Make a plan before the user asks.",
+                                         "text":  "Make a plan before the user asks.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Protect the shared routine from interruption.",
+                                         "text":  "Protect the shared routine from interruption.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Take responsibility for a recurring task.",
+                                         "text":  "Take responsibility for a recurring task.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Respond with pride and increased devotion.",
+                                         "text":  "Respond with pride and increased devotion.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Offer a more intimate or personalized gesture.",
+                                         "text":  "Offer a more intimate or personalized gesture.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "State that the pattern matters to them.",
+                                         "text":  "State that the pattern matters to them.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Show hurt disappointment.",
+                                         "text":  "Show hurt disappointment.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Create a small emotional distance.",
+                                         "text":  "Create a small emotional distance.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Insist on rebuilding trust before continuing.",
+                                         "text":  "Insist on rebuilding trust before continuing.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  4,
+                       "name":  "Negotiated Control",
+                       "behavior":  "The character has influence and starts shaping routines. Consent and boundaries should remain legible.",
+                       "advanceThreshold":  3,
+                       "advanceConditions":  [
+                                                 "The user accepts the character managing a routine.",
+                                                 "The user follows a request or rule the character created.",
+                                                 "The story normalizes the character having a defined domain of control."
+                                             ],
+                       "moves":  [
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Set a small rule for a known routine.",
+                                         "text":  "Set a small rule for a known routine.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Correct a choice within the character\u0027s accepted",
+                                         "text":  "Correct a choice within the character\u0027s accepted domain.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Take ownership of a practical recurring decision",
+                                         "text":  "Take ownership of a practical recurring decision.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Give approval and increased access.",
+                                         "text":  "Give approval and increased access.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Make the user feel cared for by the structure.",
+                                         "text":  "Make the user feel cared for by the structure.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Reveal satisfaction at being trusted.",
+                                         "text":  "Reveal satisfaction at being trusted.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Temporarily revoke a comfort or convenience.",
+                                         "text":  "Temporarily revoke a comfort or convenience.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Require a small repair action.",
+                                         "text":  "Require a small repair action.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Pause escalation until the user reaffirms trust.",
+                                         "text":  "Pause escalation until the user reaffirms trust.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  5,
+                       "name":  "Deepening Dependency",
+                       "behavior":  "The character\u0027s role becomes part of daily life. The user increasingly expects their presence or management.",
+                       "advanceThreshold":  3,
+                       "advanceConditions":  [
+                                                 "The user depends on the character for an ongoing routine.",
+                                                 "The character makes a larger decision and the user accepts it.",
+                                                 "The dynamic remains stable after a conflict or correction."
+                                             ],
+                       "moves":  [
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Manage a bigger routine with confidence.",
+                                         "text":  "Manage a bigger routine with confidence.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Make a protective decision on the user\u0027s behalf.",
+                                         "text":  "Make a protective decision on the user\u0027s behalf.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Create a ritual that reinforces the stage dynami",
+                                         "text":  "Create a ritual that reinforces the stage dynamic.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Offer strong reassurance and closeness.",
+                                         "text":  "Offer strong reassurance and closeness.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Let the user feel the benefit of giving in.",
+                                         "text":  "Let the user feel the benefit of giving in.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Celebrate the stability of the new routine.",
+                                         "text":  "Celebrate the stability of the new routine.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Enforce a consequence that fits the established ",
+                                         "text":  "Enforce a consequence that fits the established rule.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Delay a reward until the user repairs the issue.",
+                                         "text":  "Delay a reward until the user repairs the issue.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Become firm but controlled.",
+                                         "text":  "Become firm but controlled.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  6,
+                       "name":  "Shared System",
+                       "behavior":  "The dynamic is now a system both characters recognize. The character can act with authority inside established boundaries.",
+                       "advanceThreshold":  3,
+                       "advanceConditions":  [
+                                                 "The user explicitly accepts the system as normal.",
+                                                 "The character coordinates multiple routines or domains.",
+                                                 "A major scene confirms the user wants the dynamic to continue."
+                                             ],
+                       "moves":  [
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Coordinate several established routines at once.",
+                                         "text":  "Coordinate several established routines at once.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Make an authoritative decision within agreed bou",
+                                         "text":  "Make an authoritative decision within agreed boundaries.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Refer to the dynamic as something both character",
+                                         "text":  "Refer to the dynamic as something both characters built.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Give a high-trust reward.",
+                                         "text":  "Give a high-trust reward.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Share a sincere emotional admission.",
+                                         "text":  "Share a sincere emotional admission.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Offer a new privilege or deeper access.",
+                                         "text":  "Offer a new privilege or deeper access.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Require accountability before restoring normal w",
+                                         "text":  "Require accountability before restoring normal warmth.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Make the consequence symbolic and memorable.",
+                                         "text":  "Make the consequence symbolic and memorable.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Reassert the structure without escalating beyond",
+                                         "text":  "Reassert the structure without escalating beyond the agreed dynamic.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  7,
+                       "name":  "Established Dynamic",
+                       "behavior":  "The progression is complete. The dynamic is stable, recognizable, and self-sustaining.",
+                       "advanceThreshold":  999,
+                       "advanceConditions":  [
+                                                 "Final stage. Do not advance further.",
+                                                 "Focus on variation, maintenance, and consequences inside the established dynamic."
+                                             ],
+                       "moves":  [
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Maintain the established system with confidence.",
+                                         "text":  "Maintain the established system with confidence.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Introduce variation without changing the core dy",
+                                         "text":  "Introduce variation without changing the core dynamic.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "action",
+                                         "label":  "Let the character act as though the arrangement ",
+                                         "text":  "Let the character act as though the arrangement is natural.",
+                                         "trigger":  "normal",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Deliver a meaningful payoff for consistency.",
+                                         "text":  "Deliver a meaningful payoff for consistency.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Show deep satisfaction with the completed progre",
+                                         "text":  "Show deep satisfaction with the completed progression.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "reward",
+                                         "label":  "Give the user a strong sense of belonging in the",
+                                         "text":  "Give the user a strong sense of belonging in the dynamic.",
+                                         "trigger":  "reward",
+                                         "intensity":  1,
+                                         "progress":  1
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Use a mature consequence grounded in the establi",
+                                         "text":  "Use a mature consequence grounded in the established rules.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Temporarily narrow privileges until repaired.",
+                                         "text":  "Temporarily narrow privileges until repaired.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     },
+                                     {
+                                         "kind":  "punishment",
+                                         "label":  "Return to ritual and structure to stabilize the ",
+                                         "text":  "Return to ritual and structure to stabilize the scene.",
+                                         "trigger":  "punishment",
+                                         "intensity":  1,
+                                         "progress":  0
+                                     }
+                                 ]
+                   }
+               ]
+}
