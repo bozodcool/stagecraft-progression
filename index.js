@@ -894,6 +894,7 @@ function panelHtml(settings, state, stage) {
                     <input id="stagecraft_chance" type="range" min="0" max="100" step="5" value="${settings.actionChance}">
                     <label for="stagecraft_action_every">Pick action every X assistant turns</label>
                     <input id="stagecraft_action_every" type="number" min="1" max="100" step="1" value="${settings.actionEveryTurns}">
+                    ${stageEditorHtml(stage)}
                     <div class="stagecraft-buttons">
                         <button id="stagecraft_prev" class="menu_button">Back</button>
                         <button id="stagecraft_progress" class="menu_button">+ Progress</button>
@@ -942,6 +943,43 @@ function escapeHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
+function stageEditorHtml(stage) {
+    const conditions = (stage.advanceConditions || []).join('\n');
+    const moveRows = (stage.moves || []).map((move, index) => `
+        <div class="stagecraft-move-row" data-index="${index}">
+            <select class="stagecraft_move_kind">
+                ${['action', 'reward', 'punishment', 'test', 'repair', 'ritual', 'transition'].map(kind => `<option value="${kind}" ${move.kind === kind ? 'selected' : ''}>${kind}</option>`).join('')}
+            </select>
+            <input class="stagecraft_move_label" type="text" value="${escapeHtml(move.label || '')}" placeholder="Label">
+            <textarea class="stagecraft_move_text" rows="2" spellcheck="true" placeholder="Move text">${escapeHtml(move.text || '')}</textarea>
+            <input class="stagecraft_move_trigger" type="text" value="${escapeHtml(move.trigger || '')}" placeholder="Trigger">
+            <input class="stagecraft_move_intensity" type="number" min="1" max="10" step="1" value="${escapeHtml(move.intensity || 1)}" title="Intensity">
+            <input class="stagecraft_move_progress" type="number" min="-10" max="10" step="1" value="${escapeHtml(move.progress || 0)}" title="Progress">
+            <button class="menu_button stagecraft_delete_move" type="button">Delete</button>
+        </div>
+    `).join('');
+
+    return `
+        <div class="stagecraft-stage-editor">
+            <h4>Stage Editor</h4>
+            <label for="stagecraft_stage_name">Stage name</label>
+            <input id="stagecraft_stage_name" type="text" value="${escapeHtml(stage.name || '')}">
+            <label for="stagecraft_stage_behavior">Behavior</label>
+            <textarea id="stagecraft_stage_behavior" rows="4" spellcheck="true">${escapeHtml(stage.behavior || '')}</textarea>
+            <label for="stagecraft_stage_threshold">Advance threshold</label>
+            <input id="stagecraft_stage_threshold" type="number" min="1" max="999" step="1" value="${escapeHtml(stage.advanceThreshold || 3)}">
+            <label for="stagecraft_stage_conditions">Advancement conditions, one per line</label>
+            <textarea id="stagecraft_stage_conditions" rows="4" spellcheck="true">${escapeHtml(conditions)}</textarea>
+            <div class="stagecraft-editor-header">
+                <strong>Moves</strong>
+                <button id="stagecraft_add_move" class="menu_button" type="button">Add Move</button>
+            </div>
+            <div id="stagecraft_move_rows">${moveRows}</div>
+            <button id="stagecraft_save_stage" class="menu_button" type="button">Save Stage</button>
+        </div>
+    `;
+}
+
 function bindPanel() {
     const root = document.getElementById('stagecraft_panel');
     if (!root) return;
@@ -978,6 +1016,47 @@ function bindPanel() {
         renderPanel();
     });
     root.querySelector('#stagecraft_stage')?.addEventListener('change', event => setStage(event.target.value, 'selector'));
+    root.querySelector('#stagecraft_add_move')?.addEventListener('click', () => {
+        const stage = activeStage();
+        stage.moves.push(normalizeMove('New move.', 'action'));
+        saveSettings();
+        renderPanel();
+    });
+    root.querySelectorAll('.stagecraft_delete_move').forEach(button => {
+        button.addEventListener('click', event => {
+            const row = event.target.closest('.stagecraft-move-row');
+            const index = Number(row?.dataset?.index);
+            const stage = activeStage();
+            if (Number.isInteger(index)) {
+                stage.moves.splice(index, 1);
+                if (!stage.moves.length) stage.moves.push(normalizeMove('Define a stage action.', 'action'));
+                saveSettings();
+                renderPanel();
+            }
+        });
+    });
+    root.querySelector('#stagecraft_save_stage')?.addEventListener('click', () => {
+        const stage = activeStage();
+        stage.name = root.querySelector('#stagecraft_stage_name')?.value?.trim() || `Stage ${stage.id}`;
+        stage.behavior = root.querySelector('#stagecraft_stage_behavior')?.value?.trim() || 'Describe the behavior for this stage.';
+        stage.advanceThreshold = Math.max(1, Math.trunc(Number(root.querySelector('#stagecraft_stage_threshold')?.value) || 3));
+        stage.advanceConditions = (root.querySelector('#stagecraft_stage_conditions')?.value || '')
+            .split(/\r?\n/)
+            .map(line => line.trim())
+            .filter(Boolean);
+        stage.moves = [...root.querySelectorAll('.stagecraft-move-row')].map(row => normalizeMove({
+            kind: row.querySelector('.stagecraft_move_kind')?.value || 'action',
+            label: row.querySelector('.stagecraft_move_label')?.value || '',
+            text: row.querySelector('.stagecraft_move_text')?.value || '',
+            trigger: row.querySelector('.stagecraft_move_trigger')?.value || '',
+            intensity: row.querySelector('.stagecraft_move_intensity')?.value || 1,
+            progress: row.querySelector('.stagecraft_move_progress')?.value || 0,
+        }));
+        migrateStageMoves(stage);
+        saveSettings();
+        renderPanel();
+        globalThis.toastr?.success?.('Stage saved.', DISPLAY_NAME);
+    });
     root.querySelector('#stagecraft_stage_count')?.addEventListener('change', event => {
         const settings = getSettings();
         resizePack(settings.pack, event.target.value);

@@ -42,6 +42,40 @@
     border-radius: 6px;
 }
 
+.stagecraft-stage-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    background: var(--black30a);
+}
+
+.stagecraft-stage-editor h4 {
+    margin: 0;
+}
+
+.stagecraft-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.stagecraft-move-row {
+    display: grid;
+    grid-template-columns: 100px minmax(120px, 1fr) minmax(180px, 2fr) minmax(100px, 1fr) 70px 70px 80px;
+    gap: 6px;
+    align-items: start;
+    padding: 6px 0;
+    border-top: 1px solid var(--SmartThemeBorderColor);
+}
+
+.stagecraft-move-row textarea {
+    min-height: 44px;
+}
+
 .stagecraft-pack-row input[type="file"] {
     display: none;
 }
@@ -74,6 +108,10 @@
     }
 
     .stagecraft-generate-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .stagecraft-move-row {
         grid-template-columns: 1fr;
     }
 }
