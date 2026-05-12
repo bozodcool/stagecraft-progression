@@ -104,12 +104,29 @@ function normalizeMove(move, fallbackKind = 'action') {
 
     return {
         kind: String(move?.kind || fallbackKind || 'action'),
-        label: String(move?.label || move?.title || move?.text || 'Stage move').slice(0, 80),
-        text: String(move?.text || move?.description || move?.label || 'Define a stage move.'),
-        trigger: String(move?.trigger || move?.when || fallbackKind || 'normal'),
+        label: sanitizeActorText(String(move?.label || move?.title || move?.text || 'Stage move')).slice(0, 80),
+        text: sanitizeActorText(String(move?.text || move?.description || move?.label || 'Define a stage move.')),
+        trigger: sanitizeActorText(String(move?.trigger || move?.when || fallbackKind || 'normal')),
         intensity: Math.max(1, Math.min(10, Math.trunc(Number(move?.intensity) || 1))),
         progress: Math.trunc(Number(move?.progress) || 0),
     };
+}
+
+function sanitizeActorText(text) {
+    return String(text)
+        .replace(/\bSillyTavern\s+System\b/gi, '{{char}}')
+        .replace(/\bStagecraft\s+Progression\b/gi, '{{char}}')
+        .replace(/\bStagecraft\b/gi, '{{char}}')
+        .replace(/\bSystem\b/g, '{{char}}')
+        .replace(/\bsystem\b/g, 'dynamic');
+}
+
+function sanitizeStageContent(stage) {
+    stage.name = sanitizeActorText(stage.name || `Stage ${stage.id}`);
+    stage.behavior = sanitizeActorText(stage.behavior || 'Describe the behavior for this stage.');
+    stage.advanceConditions = (stage.advanceConditions || []).map(condition => sanitizeActorText(condition));
+    stage.moves = (stage.moves || []).map(move => normalizeMove(move));
+    return stage;
 }
 
 function migrateStageMoves(stage) {
@@ -156,6 +173,7 @@ function resizePack(pack, stageCount) {
             stage.advanceConditions = isFinal ? ['Final stage. Do not advance further.'] : ['Define what must happen before advancing.'];
         }
         migrateStageMoves(stage);
+        sanitizeStageContent(stage);
     });
 
     pack.stageCount = nextCount;
@@ -659,6 +677,7 @@ function buildPackPrompt(goal, stageCount, fullPack = true) {
         'Stage ids must be sequential starting at 1.',
         'The final stage should be stable and should not imply further advancement.',
         'Use {{char}} for the roleplay character and {{user}} for the user. Do not write System as an actor.',
+        'Never use SillyTavern System, Stagecraft, assistant, narrator, or system prompt as an in-world actor.',
         moveRequirement,
         '',
         `Goal/concept: ${goal}`,
@@ -743,6 +762,7 @@ function buildMovePrompt(stage, kind, concept, count) {
         '',
         'Keep items reusable, specific enough to play, and phrased as short actionable entries.',
         'Use {{char}} as the actor in every item. Do not use System as an actor.',
+        'Never make SillyTavern System, Stagecraft, assistant, narrator, or the system prompt perform a move.',
     ].join('\n');
 }
 
