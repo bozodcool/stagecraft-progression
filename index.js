@@ -44,6 +44,7 @@ const defaultSettings = Object.freeze({
     autoAdvanceEnabled: false,
     autoAdvanceEveryTurns: 5,
     autoAdvanceChance: 25,
+    editorStage: 1,
     markerAutomation: true,
     scrubMarkers: true,
     lockStage: false,
@@ -225,6 +226,12 @@ function activeStage() {
     const settings = getSettings();
     const state = getState();
     return settings.pack.stages.find(stage => Number(stage.id) === Number(state.stage)) || settings.pack.stages[0];
+}
+
+function editedStage() {
+    const settings = getSettings();
+    settings.editorStage = normalizeStage(settings.editorStage || getState().stage, settings.pack);
+    return settings.pack.stages.find(stage => Number(stage.id) === Number(settings.editorStage)) || activeStage();
 }
 
 function sample(list) {
@@ -751,8 +758,7 @@ function buildConditionsPrompt(stage, concept, count) {
 async function generateStageMoves(kind) {
     const ctx = context();
     const settings = getSettings();
-    const state = getState();
-    const stage = settings.pack.stages.find(item => Number(item.id) === Number(state.stage));
+    const stage = editedStage();
     const root = document.getElementById('stagecraft_panel');
     const concept = root?.querySelector('#stagecraft_field_concept')?.value?.trim() || '';
     const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || 8)));
@@ -791,8 +797,7 @@ async function generateStageMoves(kind) {
 async function generateStageConditions() {
     const ctx = context();
     const settings = getSettings();
-    const state = getState();
-    const stage = settings.pack.stages.find(item => Number(item.id) === Number(state.stage));
+    const stage = editedStage();
     const root = document.getElementById('stagecraft_panel');
     const concept = root?.querySelector('#stagecraft_field_concept')?.value?.trim() || '';
     const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || 8)));
@@ -835,6 +840,11 @@ function panelHtml(settings, state, stage) {
         : '';
     const stageOptions = settings.pack.stages.map(item => {
         const selected = Number(item.id) === Number(state.stage) ? 'selected' : '';
+        return `<option value="${item.id}" ${selected}>${item.id}. ${escapeHtml(item.name)}</option>`;
+    }).join('');
+    const editStage = editedStage();
+    const editStageOptions = settings.pack.stages.map(item => {
+        const selected = Number(item.id) === Number(editStage.id) ? 'selected' : '';
         return `<option value="${item.id}" ${selected}>${item.id}. ${escapeHtml(item.name)}</option>`;
     }).join('');
 
@@ -882,7 +892,7 @@ function panelHtml(settings, state, stage) {
                         <input id="stagecraft_auto_advance" type="checkbox" ${settings.autoAdvanceEnabled ? 'checked' : ''}>
                         Auto-test stage advancement
                     </label>
-                    <label for="stagecraft_stage">Current stage</label>
+                    <label for="stagecraft_stage">Current active stage</label>
                     <select id="stagecraft_stage">${stageOptions}</select>
                     <label for="stagecraft_stage_count">Number of stages</label>
                     <input id="stagecraft_stage_count" type="number" min="1" max="50" step="1" value="${stageCount}">
@@ -894,7 +904,9 @@ function panelHtml(settings, state, stage) {
                     <input id="stagecraft_chance" type="range" min="0" max="100" step="5" value="${settings.actionChance}">
                     <label for="stagecraft_action_every">Pick action every X assistant turns</label>
                     <input id="stagecraft_action_every" type="number" min="1" max="100" step="1" value="${settings.actionEveryTurns}">
-                    ${stageEditorHtml(stage)}
+                    <label for="stagecraft_edit_stage">Edit stage content</label>
+                    <select id="stagecraft_edit_stage">${editStageOptions}</select>
+                    ${stageEditorHtml(editStage)}
                     <div class="stagecraft-buttons">
                         <button id="stagecraft_prev" class="menu_button">Back</button>
                         <button id="stagecraft_progress" class="menu_button">+ Progress</button>
@@ -1016,8 +1028,14 @@ function bindPanel() {
         renderPanel();
     });
     root.querySelector('#stagecraft_stage')?.addEventListener('change', event => setStage(event.target.value, 'selector'));
+    root.querySelector('#stagecraft_edit_stage')?.addEventListener('change', event => {
+        const settings = getSettings();
+        settings.editorStage = normalizeStage(event.target.value, settings.pack);
+        saveSettings();
+        renderPanel();
+    });
     root.querySelector('#stagecraft_add_move')?.addEventListener('click', () => {
-        const stage = activeStage();
+        const stage = editedStage();
         stage.moves.push(normalizeMove('New move.', 'action'));
         saveSettings();
         renderPanel();
@@ -1026,7 +1044,7 @@ function bindPanel() {
         button.addEventListener('click', event => {
             const row = event.target.closest('.stagecraft-move-row');
             const index = Number(row?.dataset?.index);
-            const stage = activeStage();
+            const stage = editedStage();
             if (Number.isInteger(index)) {
                 stage.moves.splice(index, 1);
                 if (!stage.moves.length) stage.moves.push(normalizeMove('Define a stage action.', 'action'));
@@ -1036,7 +1054,7 @@ function bindPanel() {
         });
     });
     root.querySelector('#stagecraft_save_stage')?.addEventListener('click', () => {
-        const stage = activeStage();
+        const stage = editedStage();
         stage.name = root.querySelector('#stagecraft_stage_name')?.value?.trim() || `Stage ${stage.id}`;
         stage.behavior = root.querySelector('#stagecraft_stage_behavior')?.value?.trim() || 'Describe the behavior for this stage.';
         stage.advanceThreshold = Math.max(1, Math.trunc(Number(root.querySelector('#stagecraft_stage_threshold')?.value) || 3));
@@ -1062,6 +1080,7 @@ function bindPanel() {
         resizePack(settings.pack, event.target.value);
         const state = getState();
         state.stage = normalizeStage(state.stage, settings.pack);
+        settings.editorStage = normalizeStage(settings.editorStage, settings.pack);
         saveSettings();
         void saveState();
         renderPanel();
