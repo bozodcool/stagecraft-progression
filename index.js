@@ -1025,15 +1025,32 @@ function stageEditorHtml(stage) {
     const conditions = (stage.advanceConditions || []).join('\n');
     const moveRows = (stage.moves || []).map((move, index) => `
         <div class="stagecraft-move-row stagecraft-move-${escapeHtml(move.kind || 'action')}" data-index="${index}">
-            <select class="stagecraft_move_kind">
-                ${['action', 'reward', 'punishment', 'test', 'repair', 'ritual', 'transition'].map(kind => `<option value="${kind}" ${move.kind === kind ? 'selected' : ''}>${kind}</option>`).join('')}
-            </select>
-            <input class="stagecraft_move_label" type="text" value="${escapeHtml(move.label || '')}" placeholder="Label">
-            <textarea class="stagecraft_move_text" rows="2" spellcheck="true" placeholder="Move text">${escapeHtml(move.text || '')}</textarea>
-            <input class="stagecraft_move_trigger" type="text" value="${escapeHtml(move.trigger || '')}" placeholder="Trigger">
-            <input class="stagecraft_move_intensity" type="number" min="1" max="10" step="1" value="${escapeHtml(move.intensity || 1)}" title="Intensity">
-            <input class="stagecraft_move_progress" type="number" min="-10" max="10" step="1" value="${escapeHtml(move.progress || 0)}" title="Progress">
-            <button class="menu_button stagecraft_delete_move" type="button">Delete</button>
+            <div class="stagecraft-move-title">
+                <strong>${escapeHtml(move.label || 'Move')}</strong>
+                <button class="menu_button stagecraft_delete_move" type="button">Delete</button>
+            </div>
+            <div class="stagecraft-move-fields">
+                <label>Type
+                    <select class="stagecraft_move_kind">
+                        ${['action', 'reward', 'punishment', 'test', 'repair', 'ritual', 'transition'].map(kind => `<option value="${kind}" ${move.kind === kind ? 'selected' : ''}>${kind}</option>`).join('')}
+                    </select>
+                </label>
+                <label>Short label
+                    <input class="stagecraft_move_label" type="text" value="${escapeHtml(move.label || '')}" placeholder="Label">
+                </label>
+                <label>Trigger
+                    <input class="stagecraft_move_trigger" type="text" value="${escapeHtml(move.trigger || '')}" placeholder="Trigger">
+                </label>
+                <label>Intensity
+                    <input class="stagecraft_move_intensity" type="number" min="1" max="10" step="1" value="${escapeHtml(move.intensity || 1)}" title="Intensity">
+                </label>
+                <label>Progress
+                    <input class="stagecraft_move_progress" type="number" min="-10" max="10" step="1" value="${escapeHtml(move.progress || 0)}" title="Progress">
+                </label>
+            </div>
+            <label>Move text
+                <textarea class="stagecraft_move_text" rows="3" spellcheck="true" placeholder="Move text">${escapeHtml(move.text || '')}</textarea>
+            </label>
         </div>
     `).join('');
 
@@ -1060,15 +1077,6 @@ function stageEditorHtml(stage) {
                 <span class="stagecraft-chip stagecraft-chip-repair">repair</span>
                 <span class="stagecraft-chip stagecraft-chip-ritual">ritual</span>
                 <span class="stagecraft-chip stagecraft-chip-transition">transition</span>
-            </div>
-            <div class="stagecraft-move-header">
-                <span>Type</span>
-                <span>Short label</span>
-                <span>Move text</span>
-                <span>Trigger</span>
-                <span>Intensity</span>
-                <span>Progress</span>
-                <span></span>
             </div>
             <div id="stagecraft_move_rows">${moveRows}</div>
             <button id="stagecraft_save_stage" class="menu_button" type="button">Save Stage</button>
