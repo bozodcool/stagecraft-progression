@@ -822,9 +822,8 @@ async function generateStageMoves(kind) {
         const prompt = buildMovePrompt(stage, kind, concept, count);
         const response = await ctx.generateRaw(prompt);
         const items = extractJsonArray(response);
-        const otherMoves = (stage.moves || []).filter(move => move.kind !== kind);
         stage.moves = [
-            ...otherMoves,
+            ...(stage.moves || []).map(move => normalizeMove(move)),
             ...items.map(item => normalizeMove(item, kind)),
         ];
         resizePack(settings.pack, settings.pack.stageCount || settings.pack.stages.length);
