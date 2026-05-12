@@ -1003,7 +1003,7 @@ function panelHtml(settings, state, stage) {
                             <input id="stagecraft_import" type="file" accept="application/json">
                             <button id="stagecraft_export" class="menu_button">Export Pack</button>
                         </div>
-                        <textarea id="stagecraft_pack_editor" spellcheck="false">${escapeHtml(JSON.stringify(settings.pack, null, 2))}</textarea>
+                        <textarea id="stagecraft_pack_editor" class="stagecraft-raw-editor" spellcheck="false">${escapeHtml(JSON.stringify(settings.pack, null, 2))}</textarea>
                         <button id="stagecraft_apply_pack" class="menu_button">Apply Edited Pack</button>
                     </section>
                 </div>

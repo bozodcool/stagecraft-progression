@@ -230,15 +230,24 @@
 
 .stagecraft-panel textarea {
     width: 100%;
-    min-height: 220px;
+    min-height: 58px;
     resize: vertical;
     font-family: var(--monoFontFamily, monospace);
     font-size: 12px;
     line-height: 1.35;
 }
 
+.stagecraft-raw-editor {
+    min-height: 220px;
+}
+
 .stagecraft-generator textarea {
     min-height: 70px;
+}
+
+#stagecraft_stage_behavior,
+#stagecraft_stage_conditions {
+    min-height: 110px;
 }
 
 .stagecraft-busy {
