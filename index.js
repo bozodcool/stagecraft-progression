@@ -515,10 +515,12 @@ function importPack(file) {
 
 function extractJsonArray(text) {
     const trimmed = String(text || '').trim();
+    const parseAttempts = [];
     try {
         const parsed = JSON.parse(trimmed);
         if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
-    } catch {
+    } catch (error) {
+        parseAttempts.push(error.message);
         // Continue with fenced/plain JSON extraction.
     }
 
@@ -527,7 +529,8 @@ function extractJsonArray(text) {
         try {
             const parsed = JSON.parse(fenced.trim());
             if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
-        } catch {
+        } catch (error) {
+            parseAttempts.push(error.message);
             // Continue with bracket extraction.
         }
     }
@@ -536,11 +539,47 @@ function extractJsonArray(text) {
     const end = trimmed.lastIndexOf(']');
     if (start >= 0 && end > start) {
         const candidate = trimmed.slice(start, end + 1);
-        const parsed = JSON.parse(candidate);
-        if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+        try {
+            const parsed = JSON.parse(candidate);
+            if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+        } catch (error) {
+            parseAttempts.push(error.message);
+            const repaired = repairLooseJsonArray(candidate);
+            if (repaired.length) return repaired;
+        }
     }
 
-    throw new Error('The model did not return a JSON array.');
+    const fallback = extractLooseList(trimmed);
+    if (fallback.length) return fallback;
+
+    throw new Error(`The model did not return a usable list. ${parseAttempts[0] || ''}`.trim());
+}
+
+function repairLooseJsonArray(text) {
+    const inner = String(text).trim().replace(/^\[/, '').replace(/\]$/, '');
+    const quoted = [...inner.matchAll(/"([^"\n]{2,})"/g)].map(match => match[1].trim()).filter(Boolean);
+    if (quoted.length) return quoted;
+    return extractLooseList(inner);
+}
+
+function extractLooseList(text) {
+    return String(text)
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .map(line => line.replace(/^[-*•]\s*/, ''))
+        .map(line => line.replace(/^\d+[.)]\s*/, ''))
+        .map(line => line.replace(/^["']/, '').replace(/["'],?$/, '').replace(/,$/, '').trim())
+        .filter(line => line && !/^\[|\]$/.test(line))
+        .filter(line => !/^```/.test(line))
+        .filter(line => !/^(json|array)$/i.test(line));
+}
+
+function parseGeneratedJsonObject(text) {
+    try {
+        return extractJsonObject(text);
+    } catch {
+        throw new Error('The model did not return valid pack JSON. Try Generate Stage Skeleton first, or reduce the stage count.');
+    }
 }
 
 function extractJsonObject(text) {
@@ -658,7 +697,7 @@ async function generatePackFromGoal(fullPack = true) {
     try {
         root?.classList.add('stagecraft-busy');
         const response = await ctx.generateRaw(prompt);
-        settings.pack = normalizePack(extractJsonObject(response), stageCount);
+        settings.pack = normalizePack(parseGeneratedJsonObject(response), stageCount);
         settings.actionChance = settings.pack.defaultActionChance;
         saveSettings();
         resetState();
