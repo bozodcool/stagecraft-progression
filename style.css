@@ -156,8 +156,8 @@
 .stagecraft-move-row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 8px;
+    gap: 4px;
+    padding: 5px 7px;
     border-top: 1px solid var(--SmartThemeBorderColor);
     color: var(--SmartThemeBodyColor);
     border-left: 3px solid var(--SmartThemeBorderColor);
@@ -168,20 +168,20 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
 }
 
 .stagecraft-move-fields {
     display: grid;
     grid-template-columns: minmax(95px, 1fr) minmax(130px, 1.5fr) minmax(110px, 1fr) 76px 76px;
-    gap: 6px;
+    gap: 5px;
 }
 
 .stagecraft-move-fields label,
 .stagecraft-move-row > label {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     color: var(--SmartThemeQuoteColor);
 }
 
@@ -221,7 +221,7 @@
 }
 
 .stagecraft-move-row textarea {
-    min-height: 44px;
+    min-height: 58px;
 }
 
 .stagecraft-pack-row input[type="file"] {

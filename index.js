@@ -1049,7 +1049,7 @@ function stageEditorHtml(stage) {
                 </label>
             </div>
             <label>Move text
-                <textarea class="stagecraft_move_text" rows="3" spellcheck="true" placeholder="Move text">${escapeHtml(move.text || '')}</textarea>
+                <textarea class="stagecraft_move_text" rows="2" spellcheck="true" placeholder="Move text">${escapeHtml(move.text || '')}</textarea>
             </label>
         </div>
     `).join('');
