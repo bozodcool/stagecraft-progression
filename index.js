@@ -41,6 +41,7 @@ const defaultSettings = Object.freeze({
     includeRandomPick: true,
     displayRoll: true,
     displayStage: true,
+    showInjectionNotice: false,
     autoAdvanceEnabled: false,
     autoAdvanceEveryTurns: 5,
     autoAdvanceChance: 25,
@@ -234,6 +235,7 @@ function getState() {
             assistantTurns: 0,
             lastAdvanceTest: '',
             lastOutcome: '',
+            lastInjectionNotice: '',
             lastAction: '',
             history: [],
         };
@@ -344,6 +346,7 @@ function resetState() {
         assistantTurns: 0,
         lastAdvanceTest: '',
         lastOutcome: '',
+        lastInjectionNotice: '',
         lastAction: '',
         history: [{ at: new Date().toISOString(), type: 'reset' }],
     };
@@ -411,6 +414,8 @@ function buildInjection(type = 'normal') {
     if (settings.injectFullLists) {
         lines.push('', 'Active stage moves:', ...stage.moves.map(item => `- ${formatMove(item)}`));
     }
+
+    state.lastInjectionNotice = `Injected stage ${stage.id}/${settings.pack.stageCount || settings.pack.stages.length}: ${stage.name}; ${shouldAct ? `picked ${formatMove(pickedAction)}` : state.lastOutcome}`;
 
     lines.push('[/STAGECRAFT PROGRESSION]');
     return lines.join('\n');
@@ -884,6 +889,9 @@ function panelHtml(settings, state, stage) {
     const advanceTest = state.lastAdvanceTest
         ? `<div class="stagecraft-roll">${escapeHtml(state.lastAdvanceTest)}</div>`
         : '';
+    const injectionNotice = settings.showInjectionNotice && state.lastInjectionNotice
+        ? `<div class="stagecraft-roll">${escapeHtml(state.lastInjectionNotice)}</div>`
+        : '';
     const stageOptions = settings.pack.stages.map(item => {
         const selected = Number(item.id) === Number(state.stage) ? 'selected' : '';
         return `<option value="${item.id}" ${selected}>${item.id}. ${escapeHtml(item.name)}</option>`;
@@ -907,6 +915,7 @@ function panelHtml(settings, state, stage) {
                             ${statusStage}
                             ${statusRoll}
                             ${advanceTest}
+                            ${injectionNotice}
                         </div>
                         <div>${state.progress}/${threshold}</div>
                     </div>
@@ -1033,6 +1042,7 @@ function panelHtml(settings, state, stage) {
                                 <ul>
                                     <li><b>Inject full move list</b>: includes all active-stage moves in the prompt.</li>
                                     <li><b>Display stage / Display roll</b>: controls visible debug info in the injected prompt/panel.</li>
+                                    <li><b>Show injection notice</b>: shows the latest injected stage and picked action in the panel.</li>
                                     <li><b>Import / Export Pack</b>: load or save pack JSON.</li>
                                     <li><b>Raw JSON editor</b>: bulk edit the whole pack.</li>
                                     <li><b>Apply Edited Pack</b>: applies the raw JSON editor contents.</li>
@@ -1050,6 +1060,10 @@ function panelHtml(settings, state, stage) {
                         <label class="checkbox_label">
                             <input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>
                             Display roll
+                        </label>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_injection_notice" type="checkbox" ${settings.showInjectionNotice ? 'checked' : ''}>
+                            Show injection notice
                         </label>
                         <div class="stagecraft-pack-row">
                             <label class="menu_button" for="stagecraft_import">Import Pack</label>
@@ -1164,6 +1178,11 @@ function bindPanel() {
     });
     root.querySelector('#stagecraft_display_roll')?.addEventListener('change', event => {
         getSettings().displayRoll = event.target.checked;
+        saveSettings();
+        renderPanel();
+    });
+    root.querySelector('#stagecraft_injection_notice')?.addEventListener('change', event => {
+        getSettings().showInjectionNotice = event.target.checked;
         saveSettings();
         renderPanel();
     });
