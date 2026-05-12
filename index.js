@@ -888,82 +888,106 @@ function panelHtml(settings, state, stage) {
                         </div>
                         <div>${state.progress}/${threshold}</div>
                     </div>
-                    <label class="checkbox_label">
-                        <input id="stagecraft_enabled" type="checkbox" ${settings.enabled ? 'checked' : ''}>
-                        Enabled
-                    </label>
-                    <label class="checkbox_label">
-                        <input id="stagecraft_lock" type="checkbox" ${settings.lockStage ? 'checked' : ''}>
-                        Lock current stage
-                    </label>
-                    <label class="checkbox_label">
-                        <input id="stagecraft_markers" type="checkbox" ${settings.markerAutomation ? 'checked' : ''}>
-                        React to [stagecraft:*] markers
-                    </label>
-                    <label class="checkbox_label">
-                        <input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>
-                        Inject full move list
-                    </label>
-                    <label class="checkbox_label">
-                        <input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>
-                        Display stage
-                    </label>
-                    <label class="checkbox_label">
-                        <input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>
-                        Display roll
-                    </label>
-                    <label class="checkbox_label">
-                        <input id="stagecraft_auto_advance" type="checkbox" ${settings.autoAdvanceEnabled ? 'checked' : ''}>
-                        Auto-test stage advancement
-                    </label>
-                    <label for="stagecraft_stage">Current active stage</label>
-                    <select id="stagecraft_stage">${stageOptions}</select>
-                    <label for="stagecraft_stage_count">Number of stages</label>
-                    <input id="stagecraft_stage_count" type="number" min="1" max="50" step="1" value="${stageCount}">
-                    <label for="stagecraft_auto_every">Test every X assistant turns</label>
-                    <input id="stagecraft_auto_every" type="number" min="1" max="100" step="1" value="${settings.autoAdvanceEveryTurns}">
-                    <label for="stagecraft_auto_chance">Advance threshold: <span id="stagecraft_auto_chance_value">${settings.autoAdvanceChance}</span>%</label>
-                    <input id="stagecraft_auto_chance" type="range" min="0" max="100" step="5" value="${settings.autoAdvanceChance}">
-                    <label for="stagecraft_chance">Action chance: <span id="stagecraft_chance_value">${settings.actionChance}</span>%</label>
-                    <input id="stagecraft_chance" type="range" min="0" max="100" step="5" value="${settings.actionChance}">
-                    <label for="stagecraft_action_every">Pick action every X assistant turns</label>
-                    <input id="stagecraft_action_every" type="number" min="1" max="100" step="1" value="${settings.actionEveryTurns}">
-                    <label for="stagecraft_edit_stage">Edit stage content</label>
-                    <select id="stagecraft_edit_stage">${editStageOptions}</select>
-                    ${stageEditorHtml(editStage)}
-                    <div class="stagecraft-buttons">
-                        <button id="stagecraft_prev" class="menu_button">Back</button>
-                        <button id="stagecraft_progress" class="menu_button">+ Progress</button>
-                        <button id="stagecraft_next" class="menu_button">Advance</button>
-                        <button id="stagecraft_reset" class="menu_button danger">Reset</button>
-                    </div>
-                    <div class="stagecraft-generator">
-                        <label for="stagecraft_goal">Character / progression goal</label>
-                        <textarea id="stagecraft_goal" rows="3" spellcheck="true" placeholder="Example: A shy assistant gradually becomes confident, protective, and central to the user's daily routine."></textarea>
-                        <div class="stagecraft-generate-buttons">
-                            <button id="stagecraft_gen_skeleton" class="menu_button">Generate Stage Skeleton</button>
-                            <button id="stagecraft_gen_pack" class="menu_button">Generate Full Pack</button>
+                    <section class="stagecraft-section">
+                        <h4>Runtime</h4>
+                        <p>Controls what the live chat is using right now.</p>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_enabled" type="checkbox" ${settings.enabled ? 'checked' : ''}>
+                            Enabled
+                        </label>
+                        <label for="stagecraft_stage">Current active stage</label>
+                        <select id="stagecraft_stage">${stageOptions}</select>
+                        <div class="stagecraft-buttons">
+                            <button id="stagecraft_prev" class="menu_button">Back</button>
+                            <button id="stagecraft_progress" class="menu_button">+ Progress</button>
+                            <button id="stagecraft_next" class="menu_button">Advance</button>
+                            <button id="stagecraft_reset" class="menu_button danger">Reset</button>
                         </div>
-                    </div>
-                    <div class="stagecraft-generator">
-                        <label for="stagecraft_field_concept">Stage field concept</label>
-                        <textarea id="stagecraft_field_concept" rows="3" spellcheck="true" placeholder="Small note, vibe, kink, relationship beat, scene rule, or action theme."></textarea>
-                        <label for="stagecraft_field_count">Items to generate</label>
-                        <input id="stagecraft_field_count" type="number" min="1" max="30" step="1" value="8">
-                        <div class="stagecraft-generate-buttons">
-                            <button id="stagecraft_gen_actions" class="menu_button">Generate Actions</button>
-                            <button id="stagecraft_gen_rewards" class="menu_button">Generate Reward Moves</button>
-                            <button id="stagecraft_gen_punishments" class="menu_button">Generate Punishment Moves</button>
-                            <button id="stagecraft_gen_conditions" class="menu_button">Generate Conditions</button>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_lock" type="checkbox" ${settings.lockStage ? 'checked' : ''}>
+                            Lock current stage
+                        </label>
+                    </section>
+
+                    <section class="stagecraft-section">
+                        <h4>Stage Editor</h4>
+                        <p>Edits stage content. This does not change the active stage unless you choose it above.</p>
+                        <label for="stagecraft_stage_count">Number of stages</label>
+                        <input id="stagecraft_stage_count" type="number" min="1" max="50" step="1" value="${stageCount}">
+                        <label for="stagecraft_edit_stage">Edit stage content</label>
+                        <select id="stagecraft_edit_stage">${editStageOptions}</select>
+                        ${stageEditorHtml(editStage)}
+                    </section>
+
+                    <section class="stagecraft-section">
+                        <h4>Automation</h4>
+                        <p>Controls how often moves and stage jumps happen automatically.</p>
+                        <label for="stagecraft_action_every">Pick action every X assistant turns</label>
+                        <input id="stagecraft_action_every" type="number" min="1" max="100" step="1" value="${settings.actionEveryTurns}">
+                        <label for="stagecraft_chance">Action chance: <span id="stagecraft_chance_value">${settings.actionChance}</span>%</label>
+                        <input id="stagecraft_chance" type="range" min="0" max="100" step="5" value="${settings.actionChance}">
+                        <label class="checkbox_label">
+                            <input id="stagecraft_auto_advance" type="checkbox" ${settings.autoAdvanceEnabled ? 'checked' : ''}>
+                            Auto-test stage advancement
+                        </label>
+                        <label for="stagecraft_auto_every">Test advancement every X assistant turns</label>
+                        <input id="stagecraft_auto_every" type="number" min="1" max="100" step="1" value="${settings.autoAdvanceEveryTurns}">
+                        <label for="stagecraft_auto_chance">Advance threshold: <span id="stagecraft_auto_chance_value">${settings.autoAdvanceChance}</span>%</label>
+                        <input id="stagecraft_auto_chance" type="range" min="0" max="100" step="5" value="${settings.autoAdvanceChance}">
+                        <label class="checkbox_label">
+                            <input id="stagecraft_markers" type="checkbox" ${settings.markerAutomation ? 'checked' : ''}>
+                            React to [stagecraft:*] markers
+                        </label>
+                    </section>
+
+                    <section class="stagecraft-section">
+                        <h4>Generate</h4>
+                        <p>Use the active SillyTavern model to draft stages or fill the selected stage.</p>
+                        <div class="stagecraft-generator">
+                            <label for="stagecraft_goal">Character / progression goal</label>
+                            <textarea id="stagecraft_goal" rows="3" spellcheck="true" placeholder="Example: A shy assistant gradually becomes confident, protective, and central to the user's daily routine."></textarea>
+                            <div class="stagecraft-generate-buttons">
+                                <button id="stagecraft_gen_skeleton" class="menu_button">Generate Stage Skeleton</button>
+                                <button id="stagecraft_gen_pack" class="menu_button">Generate Full Pack</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="stagecraft-pack-row">
-                        <label class="menu_button" for="stagecraft_import">Import Pack</label>
-                        <input id="stagecraft_import" type="file" accept="application/json">
-                        <button id="stagecraft_export" class="menu_button">Export Pack</button>
-                    </div>
-                    <textarea id="stagecraft_pack_editor" spellcheck="false">${escapeHtml(JSON.stringify(settings.pack, null, 2))}</textarea>
-                    <button id="stagecraft_apply_pack" class="menu_button">Apply Edited Pack</button>
+                        <div class="stagecraft-generator">
+                            <label for="stagecraft_field_concept">Selected-stage concept</label>
+                            <textarea id="stagecraft_field_concept" rows="3" spellcheck="true" placeholder="Small note, vibe, relationship beat, scene rule, or action theme."></textarea>
+                            <label for="stagecraft_field_count">Items to generate</label>
+                            <input id="stagecraft_field_count" type="number" min="1" max="30" step="1" value="8">
+                            <div class="stagecraft-generate-buttons">
+                                <button id="stagecraft_gen_actions" class="menu_button">Generate Actions</button>
+                                <button id="stagecraft_gen_rewards" class="menu_button">Generate Reward Moves</button>
+                                <button id="stagecraft_gen_punishments" class="menu_button">Generate Punishment Moves</button>
+                                <button id="stagecraft_gen_conditions" class="menu_button">Generate Conditions</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="stagecraft-section">
+                        <h4>Advanced</h4>
+                        <p>Import/export packs or edit the raw JSON directly.</p>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>
+                            Inject full move list
+                        </label>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>
+                            Display stage
+                        </label>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>
+                            Display roll
+                        </label>
+                        <div class="stagecraft-pack-row">
+                            <label class="menu_button" for="stagecraft_import">Import Pack</label>
+                            <input id="stagecraft_import" type="file" accept="application/json">
+                            <button id="stagecraft_export" class="menu_button">Export Pack</button>
+                        </div>
+                        <textarea id="stagecraft_pack_editor" spellcheck="false">${escapeHtml(JSON.stringify(settings.pack, null, 2))}</textarea>
+                        <button id="stagecraft_apply_pack" class="menu_button">Apply Edited Pack</button>
+                    </section>
                 </div>
             </div>
         </div>
