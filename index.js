@@ -45,6 +45,7 @@ const defaultSettings = Object.freeze({
     autoAdvanceEveryTurns: 5,
     autoAdvanceChance: 25,
     editorStage: 1,
+    fieldGenerateCount: 1,
     markerAutomation: true,
     scrubMarkers: true,
     lockStage: false,
@@ -803,7 +804,9 @@ async function generateStageMoves(kind) {
     const stage = editedStage();
     const root = document.getElementById('stagecraft_panel');
     const concept = root?.querySelector('#stagecraft_field_concept')?.value?.trim() || '';
-    const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || 8)));
+    const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || settings.fieldGenerateCount || 1)));
+    settings.fieldGenerateCount = count;
+    saveSettings();
 
     if (!stage) return;
 
@@ -842,7 +845,9 @@ async function generateStageConditions() {
     const stage = editedStage();
     const root = document.getElementById('stagecraft_panel');
     const concept = root?.querySelector('#stagecraft_field_concept')?.value?.trim() || '';
-    const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || 8)));
+    const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || settings.fieldGenerateCount || 1)));
+    settings.fieldGenerateCount = count;
+    saveSettings();
 
     if (!stage) return;
 
@@ -973,7 +978,7 @@ function panelHtml(settings, state, stage) {
                             <label for="stagecraft_field_concept">Selected-stage concept</label>
                             <textarea id="stagecraft_field_concept" rows="3" spellcheck="true" placeholder="Small note, vibe, relationship beat, scene rule, or action theme."></textarea>
                             <label for="stagecraft_field_count">Items to generate</label>
-                            <input id="stagecraft_field_count" type="number" min="1" max="30" step="1" value="8">
+                            <input id="stagecraft_field_count" type="number" min="1" max="30" step="1" value="${settings.fieldGenerateCount || 1}">
                             <div class="stagecraft-generate-buttons">
                                 <button id="stagecraft_gen_actions" class="menu_button">Generate Actions</button>
                                 <button id="stagecraft_gen_rewards" class="menu_button">Generate Reward Moves</button>
@@ -1250,6 +1255,10 @@ function bindPanel() {
     root.querySelector('#stagecraft_reset')?.addEventListener('click', () => resetState());
     root.querySelector('#stagecraft_gen_skeleton')?.addEventListener('click', () => void generatePackFromGoal(false));
     root.querySelector('#stagecraft_gen_pack')?.addEventListener('click', () => void generatePackFromGoal(true));
+    root.querySelector('#stagecraft_field_count')?.addEventListener('change', event => {
+        getSettings().fieldGenerateCount = Math.min(30, Math.max(1, Math.trunc(Number(event.target.value) || 1)));
+        saveSettings();
+    });
     root.querySelector('#stagecraft_gen_actions')?.addEventListener('click', () => void generateStageMoves('action'));
     root.querySelector('#stagecraft_gen_rewards')?.addEventListener('click', () => void generateStageMoves('reward'));
     root.querySelector('#stagecraft_gen_punishments')?.addEventListener('click', () => void generateStageMoves('punishment'));
