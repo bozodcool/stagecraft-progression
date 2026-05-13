@@ -37,7 +37,7 @@ const defaultSettings = Object.freeze({
     enabled: true,
     actionChance: 35,
     actionEveryTurns: 3,
-    injectFullLists: true,
+    injectFullLists: false,
     includeRandomPick: true,
     displayRoll: true,
     displayStage: true,
@@ -365,8 +365,6 @@ function buildInjection(type = 'normal') {
     const isActionTurn = assistantTurns === 0 || (assistantTurns + 1) % actionEveryTurns === 0;
     const shouldAct = isActionTurn && roll <= actionChance;
     const pickedAction = shouldAct ? sample(movesByKind(stage, 'action')) : '';
-    const pickedReward = sample(movesByKind(stage, 'reward'));
-    const pickedPunishment = sample(movesByKind(stage, 'punishment'));
     const threshold = Number(stage.advanceThreshold || settings.pack.defaultAdvanceThreshold || 3);
 
     state.lastAction = pickedAction ? formatMove(pickedAction) : '';
@@ -407,8 +405,6 @@ function buildInjection(type = 'normal') {
 
     if (settings.includeRandomPick) {
         lines.push('', 'This turn selection:', shouldAct ? `- ${formatMove(pickedAction)}` : '- No forced action this turn; continue naturally.');
-        if (pickedReward) lines.push(`- Reward move option: ${formatMove(pickedReward)}`);
-        if (pickedPunishment) lines.push(`- Punishment move option: ${formatMove(pickedPunishment)}`);
     }
 
     if (settings.injectFullLists) {
@@ -1051,7 +1047,7 @@ function panelHtml(settings, state, stage) {
                         </details>
                         <label class="checkbox_label">
                             <input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>
-                            Inject full move list
+                            Inject full move list (debug/noisy)
                         </label>
                         <label class="checkbox_label">
                             <input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>
