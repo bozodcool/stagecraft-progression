@@ -939,6 +939,8 @@ function panelHtml(settings, state, stage) {
                     <section class="stagecraft-section stagecraft-editor-section">
                         <h4>Stage Editor</h4>
                         <p>Edits stage content. This does not change the active stage unless you choose it above.</p>
+                        <label for="stagecraft_pack_name">Stage setup name</label>
+                        <input id="stagecraft_pack_name" type="text" value="${escapeHtml(settings.pack.name || 'Stagecraft Pack')}">
                         <label for="stagecraft_stage_count">Number of stages</label>
                         <input id="stagecraft_stage_count" type="number" min="1" max="50" step="1" value="${stageCount}">
                         <label for="stagecraft_edit_stage">Edit stage content</label>
@@ -1009,6 +1011,7 @@ function panelHtml(settings, state, stage) {
                                 <strong>Stage Editor</strong>
                                 <ul>
                                     <li><b>Number of stages</b>: resizes the pack from 1 to 50 stages.</li>
+                                    <li><b>Stage setup name</b>: names this reusable pack and export file.</li>
                                     <li><b>Edit stage content</b>: chooses which stage you are editing, separate from the active stage.</li>
                                     <li><b>Stage name</b>: short title shown in selectors.</li>
                                     <li><b>Behavior</b>: the general behavior for {{char}} in this stage.</li>
@@ -1188,6 +1191,12 @@ function bindPanel() {
         renderPanel();
     });
     root.querySelector('#stagecraft_stage')?.addEventListener('change', event => setStage(event.target.value, 'selector'));
+    root.querySelector('#stagecraft_pack_name')?.addEventListener('change', event => {
+        const settings = getSettings();
+        settings.pack.name = event.target.value.trim() || 'Stagecraft Pack';
+        saveSettings();
+        renderPanel();
+    });
     root.querySelector('#stagecraft_edit_stage')?.addEventListener('change', event => {
         const settings = getSettings();
         settings.editorStage = normalizeStage(event.target.value, settings.pack);
