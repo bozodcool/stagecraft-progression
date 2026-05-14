@@ -846,6 +846,10 @@ function buildMovePrompt(stage, kind, concept, count) {
     ].join('\n');
 }
 
+function takeGeneratedItems(items, count) {
+    return (Array.isArray(items) ? items : []).filter(Boolean).slice(0, count);
+}
+
 function buildConditionsPrompt(stage, concept, count) {
     return [
         'Generate roleplay progression advancement conditions.',
@@ -882,7 +886,7 @@ async function generateStageMoves(kind) {
         if (root) root.classList.add('stagecraft-busy');
         const prompt = buildMovePrompt(stage, kind, concept, count);
         const response = await ctx.generateRaw(prompt);
-        const items = extractJsonArray(response);
+        const items = takeGeneratedItems(extractJsonArray(response), count);
         stage.moves = [
             ...(stage.moves || []).map(move => normalizeMove(move)),
             ...items.map(item => normalizeMove(item, kind)),
@@ -890,7 +894,7 @@ async function generateStageMoves(kind) {
         resizePack(settings.pack, settings.pack.stageCount || settings.pack.stages.length);
         saveSettings();
         renderPanel();
-        notify('success', `Generated ${items.length} ${kind} moves.`);
+        notify('success', `Generated ${items.length} ${kind} ${items.length === 1 ? 'move' : 'moves'}.`);
     } catch (error) {
         notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate ${kind} moves`, error);
@@ -921,10 +925,10 @@ async function generateStageConditions() {
     try {
         if (root) root.classList.add('stagecraft-busy');
         const response = await ctx.generateRaw(buildConditionsPrompt(stage, concept, count));
-        stage.advanceConditions = extractJsonArray(response);
+        stage.advanceConditions = takeGeneratedItems(extractJsonArray(response), count);
         saveSettings();
         renderPanel();
-        notify('success', `Generated ${stage.advanceConditions.length} conditions.`);
+        notify('success', `Generated ${stage.advanceConditions.length} ${stage.advanceConditions.length === 1 ? 'condition' : 'conditions'}.`);
     } catch (error) {
         notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate conditions`, error);
@@ -1338,7 +1342,7 @@ function bindPanel() {
     addListener(root, '#stagecraft_reset', 'click', () => resetState());
     addListener(root, '#stagecraft_gen_skeleton', 'click', () => void generatePackFromGoal(false));
     addListener(root, '#stagecraft_gen_pack', 'click', () => void generatePackFromGoal(true));
-    addListener(root, '#stagecraft_field_count', 'change', event => {
+    addListener(root, '#stagecraft_field_count', 'input', event => {
         getSettings().fieldGenerateCount = Math.min(30, Math.max(1, Math.trunc(Number(event.target.value) || 1)));
         saveSettings();
     });
