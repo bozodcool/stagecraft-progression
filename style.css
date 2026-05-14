@@ -107,6 +107,11 @@
     background: color-mix(in srgb, #f0b84f 11%, transparent);
 }
 
+.stagecraft-display-options {
+    border-left-color: #38cfd9;
+    background: color-mix(in srgb, #38cfd9 10%, transparent);
+}
+
 .stagecraft-generate-section {
     border-left-color: #c084fc;
     background: color-mix(in srgb, #c084fc 10%, transparent);

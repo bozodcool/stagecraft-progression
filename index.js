@@ -1033,6 +1033,27 @@ function panelHtml(settings, state, stage) {
                         </label>
                     </section>
 
+                    <section class="stagecraft-section stagecraft-display-options">
+                        <h4>Display Options</h4>
+                        <p>Controls debug visibility and how much Stagecraft includes in prompts.</p>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>
+                            Inject full move list (debug/noisy)
+                        </label>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>
+                            Display stage
+                        </label>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>
+                            Display roll
+                        </label>
+                        <label class="checkbox_label">
+                            <input id="stagecraft_injection_notice" type="checkbox" ${settings.showInjectionNotice ? 'checked' : ''}>
+                            Show injection notice
+                        </label>
+                    </section>
+
                     <section class="stagecraft-section stagecraft-generate-section">
                         <h4>Generate</h4>
                         <p>Use the active SillyTavern model to draft stages or fill the selected stage.</p>
@@ -1112,22 +1133,6 @@ function panelHtml(settings, state, stage) {
                                 </ul>
                             </div>
                         </details>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>
-                            Inject full move list (debug/noisy)
-                        </label>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>
-                            Display stage
-                        </label>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>
-                            Display roll
-                        </label>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_injection_notice" type="checkbox" ${settings.showInjectionNotice ? 'checked' : ''}>
-                            Show injection notice
-                        </label>
                         <div class="stagecraft-pack-row">
                             <label class="menu_button" for="stagecraft_import">Import Pack</label>
                             <input id="stagecraft_import" type="file" accept="application/json">
