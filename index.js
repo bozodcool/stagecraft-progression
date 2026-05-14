@@ -665,7 +665,12 @@ function parseGeneratedJsonObject(text) {
     } catch (error) {
         const preview = String(text || '').trim().slice(0, 240).replace(/\s+/g, ' ');
         const detail = preview ? ` First returned text: ${preview}` : '';
-        throw new Error(`The model did not return valid pack JSON. Try Generate Stage Skeleton first, reduce the stage count, or use a stricter JSON-capable model.${detail}`);
+        const trimmed = String(text || '').trim();
+        const looksTruncated = trimmed.startsWith('{') && !trimmed.endsWith('}');
+        const advice = looksTruncated
+            ? 'The JSON looks truncated. Reduce the stage count, increase your response/token limit, or generate a skeleton first.'
+            : 'Try Generate Stage Skeleton first, reduce the stage count, or use a stricter JSON-capable model.';
+        throw new Error(`The model did not return valid pack JSON. ${advice}${detail}`);
     }
 }
 
@@ -703,19 +708,24 @@ function extractJsonObject(text) {
 function buildPackPrompt(goal, stageCount, fullPack = true) {
     const moveRequirement = fullPack
         ? [
-            'Each stage must include 8-12 moves.',
+            'Each stage must include exactly 2 moves.',
             'Each move must include: kind, label, text, trigger, intensity, progress.',
-        'Use move kinds such as action, reward, punishment, test, repair, ritual, and transition.',
-        'Every generated move text must explicitly use {{char}} as the actor.',
+            'Use compact move text of 1 sentence each.',
+            'Use move kinds such as action, reward, punishment, test, repair, ritual, and transition.',
+            'Every generated move text must explicitly use {{char}} as the actor.',
         ].join('\n')
         : [
             'Each stage should include an empty moves array.',
-            'Focus on clean stage names, behavior, and advancement conditions.',
+            'Use compact behavior text of 1 sentence per stage.',
+            'Use exactly 2 advancement conditions per stage.',
         ].join('\n');
 
     return [
         'Create a Stagecraft progression pack for roleplay.',
         'Return only valid JSON. No markdown, no commentary.',
+        'Keep all strings short. Prefer compact JSON over detail.',
+        'Do not include trailing commas.',
+        'The response must end with the final closing brace of the JSON object.',
         '',
         'Required top-level schema:',
         '{',
@@ -739,6 +749,7 @@ function buildPackPrompt(goal, stageCount, fullPack = true) {
         'Stage ids must be sequential starting at 1.',
         'The final stage should be stable and should not imply further advancement.',
         'Use {{char}} for the roleplay character and {{user}} for the user. Do not write System as an actor.',
+        'If the goal mentions SillyTavern System, replace that actor with {{char}}.',
         'Never use SillyTavern System, Stagecraft, assistant, narrator, or system prompt as an in-world actor.',
         moveRequirement,
         '',
@@ -787,7 +798,11 @@ async function generatePackFromGoal(fullPack = true) {
 
     try {
         if (root) root.classList.add('stagecraft-busy');
-        const response = await ctx.generateRaw(prompt);
+        const response = await ctx.generateRaw({
+            prompt,
+            responseLength: fullPack ? 8192 : 4096,
+            trimNames: false,
+        });
         settings.pack = normalizePack(parseGeneratedJsonObject(response), stageCount);
         settings.actionChance = settings.pack.defaultActionChance;
         saveSettings();
