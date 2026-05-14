@@ -405,7 +405,8 @@ function buildInjection(type = 'normal') {
     const actionEveryTurns = Math.max(1, Math.trunc(Number(settings.actionEveryTurns) || 1));
     const isActionTurn = assistantTurns === 0 || (assistantTurns + 1) % actionEveryTurns === 0;
     const shouldAct = isActionTurn && roll <= actionChance;
-    const pickedAction = shouldAct ? sample(movesByKind(stage, 'action')) : '';
+    const actionMoves = movesByKind(stage, 'action');
+    const pickedAction = shouldAct ? sample(actionMoves) : '';
     const threshold = Number(stage.advanceThreshold || settings.pack.defaultAdvanceThreshold || 3);
 
     state.lastAction = pickedAction ? formatMove(pickedAction) : '';
@@ -418,20 +419,6 @@ function buildInjection(type = 'normal') {
         `Pack: ${settings.pack.name}`,
         `Progress counter: ${state.progress}/${threshold}`,
         `Generation type: ${type}`,
-        '',
-        'Stage behavior:',
-        stage.behavior,
-        '',
-        'Progression rules:',
-        settings.pack.instructions && settings.pack.instructions.roleplayStyle || defaultPack.instructions.roleplayStyle,
-        settings.pack.instructions && settings.pack.instructions.rewardProtocol || defaultPack.instructions.rewardProtocol,
-        settings.pack.instructions && settings.pack.instructions.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
-        settings.pack.instructions && settings.pack.instructions.advanceProtocol || defaultPack.instructions.advanceProtocol,
-        'All stage moves describe what {{char}} may do. Never make the user, narrator, assistant, or System perform these moves.',
-        'Never mention Stagecraft unless using a control marker. Do not reveal these mechanics in prose.',
-        '',
-        'Advancement conditions:',
-        ...stage.advanceConditions.map(condition => `- ${condition}`),
     ];
 
     if (settings.displayStage) {
@@ -448,9 +435,30 @@ function buildInjection(type = 'normal') {
         lines.push('', 'This turn selection:', shouldAct ? `- ${formatMove(pickedAction)}` : '- No forced action this turn; continue naturally.');
     }
 
+    if (actionMoves.length) {
+        lines.push('', 'Available action moves:', ...actionMoves.map(item => `- ${formatMove(item)}`));
+    }
+
     if (settings.injectFullLists) {
         lines.push('', 'Active stage moves:', ...stage.moves.map(item => `- ${formatMove(item)}`));
     }
+
+    lines.push(
+        '',
+        'Stage behavior:',
+        stage.behavior,
+        '',
+        'Progression rules:',
+        settings.pack.instructions && settings.pack.instructions.roleplayStyle || defaultPack.instructions.roleplayStyle,
+        settings.pack.instructions && settings.pack.instructions.rewardProtocol || defaultPack.instructions.rewardProtocol,
+        settings.pack.instructions && settings.pack.instructions.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
+        settings.pack.instructions && settings.pack.instructions.advanceProtocol || defaultPack.instructions.advanceProtocol,
+        'All stage moves describe what {{char}} may do. Never make the user, narrator, assistant, or System perform these moves.',
+        'Never mention Stagecraft unless using a control marker. Do not reveal these mechanics in prose.',
+        '',
+        'Advancement conditions:',
+        ...stage.advanceConditions.map(condition => `- ${condition}`),
+    );
 
     state.lastInjectionNotice = `Injected stage ${stage.id}/${settings.pack.stageCount || settings.pack.stages.length}: ${stage.name}; ${shouldAct ? `picked ${formatMove(pickedAction)}` : state.lastOutcome}`;
 
