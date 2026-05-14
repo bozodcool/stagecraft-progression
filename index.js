@@ -416,6 +416,7 @@ function buildInjection(type = 'normal') {
 
     const lines = [
         '[STAGECRAFT PROGRESSION - ACTIVE]',
+        'Injection code: 0.1.1',
         `Pack: ${settings.pack.name}`,
         `Progress counter: ${state.progress}/${threshold}`,
         `Generation type: ${type}`,
