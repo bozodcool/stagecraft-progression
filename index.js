@@ -54,15 +54,48 @@ const defaultSettings = Object.freeze({
 });
 
 function context() {
-    return globalThis.SillyTavern?.getContext?.();
+    const api = globalThis.SillyTavern;
+    return api && typeof api.getContext === 'function' ? api.getContext() : null;
 }
 
 function clone(value) {
     return structuredClone(value);
 }
 
+function hasOwn(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function notify(kind, message) {
+    const toastr = globalThis.toastr;
+    if (toastr && typeof toastr[kind] === 'function') {
+        toastr[kind](message, DISPLAY_NAME);
+    }
+}
+
+function elementValue(root, selector) {
+    const element = root ? root.querySelector(selector) : null;
+    return element && typeof element.value === 'string' ? element.value : '';
+}
+
+function addListener(root, selector, eventName, handler) {
+    const element = root ? root.querySelector(selector) : null;
+    if (element) {
+        element.addEventListener(eventName, handler);
+    }
+}
+
+function writeClipboard(text) {
+    const clipboard = navigator.clipboard;
+    if (clipboard && typeof clipboard.writeText === 'function') {
+        return clipboard.writeText(text);
+    }
+    return Promise.resolve();
+}
+
 function normalizeStage(stage, pack) {
-    const maxStage = Math.max(1, Number(pack?.stageCount) || pack?.stages?.length || 7);
+    const stages = pack && Array.isArray(pack.stages) ? pack.stages : [];
+    const maxStage = Math.max(1, Number(pack && pack.stageCount) || stages.length || 7);
     const numeric = Number(stage);
     if (!Number.isFinite(numeric)) return 1;
     return Math.min(maxStage, Math.max(1, Math.trunc(numeric)));
@@ -105,13 +138,15 @@ function normalizeMove(move, fallbackKind = 'action') {
         return moveFromText(move, fallbackKind);
     }
 
+    const source = move || {};
+    const kind = String(source.kind || fallbackKind || 'action');
     return {
-        kind: String(move?.kind || fallbackKind || 'action'),
-        label: makeMoveLabel(sanitizeActorText(String(move?.label || move?.title || move?.text || 'Stage move')), String(move?.kind || fallbackKind || 'action')),
-        text: sanitizeActorText(String(move?.text || move?.description || move?.label || 'Define a stage move.')),
-        trigger: sanitizeActorText(String(move?.trigger || move?.when || fallbackKind || 'normal')),
-        intensity: Math.max(1, Math.min(10, Math.trunc(Number(move?.intensity) || 1))),
-        progress: Math.trunc(Number(move?.progress) || 0),
+        kind,
+        label: makeMoveLabel(sanitizeActorText(String(source.label || source.title || source.text || 'Stage move')), kind),
+        text: sanitizeActorText(String(source.text || source.description || source.label || 'Define a stage move.')),
+        trigger: sanitizeActorText(String(source.trigger || source.when || fallbackKind || 'normal')),
+        intensity: Math.max(1, Math.min(10, Math.trunc(Number(source.intensity) || 1))),
+        progress: Math.trunc(Number(source.progress) || 0),
     };
 }
 
@@ -181,8 +216,8 @@ function resizePack(pack, stageCount) {
 
     resized.forEach((stage, index) => {
         const isFinal = index === resized.length - 1;
-        stage.name ||= `Stage ${stage.id}`;
-        stage.behavior ||= 'Describe the behavior for this stage.';
+        stage.name = stage.name || `Stage ${stage.id}`;
+        stage.behavior = stage.behavior || 'Describe the behavior for this stage.';
         if (!Number.isFinite(Number(stage.advanceThreshold))) {
             stage.advanceThreshold = isFinal ? 999 : 3;
         }
@@ -208,12 +243,12 @@ function getSettings() {
 
     const settings = ctx.extensionSettings[MODULE_NAME];
     for (const [key, value] of Object.entries(defaultSettings)) {
-        if (!Object.hasOwn(settings, key)) {
+        if (!hasOwn(settings, key)) {
             settings[key] = clone(value);
         }
     }
 
-    if (!settings.pack?.stages?.length) {
+    if (!settings.pack || !Array.isArray(settings.pack.stages) || !settings.pack.stages.length) {
         settings.pack = clone(defaultPack);
     }
 
@@ -246,16 +281,22 @@ function getState() {
     state.stage = normalizeStage(state.stage, settings.pack);
     state.progress = Number.isFinite(Number(state.progress)) ? Number(state.progress) : 0;
     state.assistantTurns = Number.isFinite(Number(state.assistantTurns)) ? Number(state.assistantTurns) : 0;
-    state.history ??= [];
+    state.history = state.history || [];
     return state;
 }
 
 function saveSettings() {
-    context()?.saveSettingsDebounced?.();
+    const ctx = context();
+    if (ctx && typeof ctx.saveSettingsDebounced === 'function') {
+        ctx.saveSettingsDebounced();
+    }
 }
 
 async function saveState() {
-    await context()?.saveMetadata?.();
+    const ctx = context();
+    if (ctx && typeof ctx.saveMetadata === 'function') {
+        await ctx.saveMetadata();
+    }
 }
 
 function activeStage() {
@@ -382,10 +423,10 @@ function buildInjection(type = 'normal') {
         stage.behavior,
         '',
         'Progression rules:',
-        settings.pack.instructions?.roleplayStyle || defaultPack.instructions.roleplayStyle,
-        settings.pack.instructions?.rewardProtocol || defaultPack.instructions.rewardProtocol,
-        settings.pack.instructions?.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
-        settings.pack.instructions?.advanceProtocol || defaultPack.instructions.advanceProtocol,
+        settings.pack.instructions && settings.pack.instructions.roleplayStyle || defaultPack.instructions.roleplayStyle,
+        settings.pack.instructions && settings.pack.instructions.rewardProtocol || defaultPack.instructions.rewardProtocol,
+        settings.pack.instructions && settings.pack.instructions.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
+        settings.pack.instructions && settings.pack.instructions.advanceProtocol || defaultPack.instructions.advanceProtocol,
         'All stage moves describe what {{char}} may do. Never make the user, narrator, assistant, or System perform these moves.',
         'Never mention Stagecraft unless using a control marker. Do not reveal these mechanics in prose.',
         '',
@@ -438,7 +479,7 @@ globalThis.stagecraftGenerateInterceptor = async function stagecraftGenerateInte
 
 function processMarkers(message) {
     const settings = getSettings();
-    if (!settings.enabled || !message?.mes) return;
+    if (!settings.enabled || !message || !message.mes) return;
 
     runAutoAdvanceTest();
 
@@ -549,7 +590,7 @@ function importPack(file) {
             saveSettings();
             resetState();
         } catch (error) {
-            globalThis.toastr?.error?.(error.message, DISPLAY_NAME);
+            notify('error', error.message);
             console.error(`${DISPLAY_NAME}: failed to import pack`, error);
         }
     };
@@ -567,7 +608,8 @@ function extractJsonArray(text) {
         // Continue with fenced/plain JSON extraction.
     }
 
-    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+    const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const fenced = fenceMatch ? fenceMatch[1] : null;
     if (fenced) {
         try {
             const parsed = JSON.parse(fenced.trim());
@@ -620,8 +662,10 @@ function extractLooseList(text) {
 function parseGeneratedJsonObject(text) {
     try {
         return extractJsonObject(text);
-    } catch {
-        throw new Error('The model did not return valid pack JSON. Try Generate Stage Skeleton first, or reduce the stage count.');
+    } catch (error) {
+        const preview = String(text || '').trim().slice(0, 240).replace(/\s+/g, ' ');
+        const detail = preview ? ` First returned text: ${preview}` : '';
+        throw new Error(`The model did not return valid pack JSON. Try Generate Stage Skeleton first, reduce the stage count, or use a stricter JSON-capable model.${detail}`);
     }
 }
 
@@ -630,16 +674,17 @@ function extractJsonObject(text) {
     try {
         const parsed = JSON.parse(trimmed);
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
-    } catch {
+    } catch (error) {
         // Continue with fenced/plain JSON extraction.
     }
 
-    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+    const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const fenced = fenceMatch ? fenceMatch[1] : null;
     if (fenced) {
         try {
             const parsed = JSON.parse(fenced.trim());
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
-        } catch {
+        } catch (error) {
             // Continue with object extraction.
         }
     }
@@ -710,10 +755,10 @@ function normalizePack(pack, stageCount) {
         defaultActionChance: Number(pack.defaultActionChance || 35),
         defaultAdvanceThreshold: Number(pack.defaultAdvanceThreshold || 3),
         instructions: {
-            roleplayStyle: pack.instructions?.roleplayStyle || defaultPack.instructions.roleplayStyle,
-            advanceProtocol: pack.instructions?.advanceProtocol || defaultPack.instructions.advanceProtocol,
-            rewardProtocol: pack.instructions?.rewardProtocol || defaultPack.instructions.rewardProtocol,
-            punishmentProtocol: pack.instructions?.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
+            roleplayStyle: pack.instructions && pack.instructions.roleplayStyle || defaultPack.instructions.roleplayStyle,
+            advanceProtocol: pack.instructions && pack.instructions.advanceProtocol || defaultPack.instructions.advanceProtocol,
+            rewardProtocol: pack.instructions && pack.instructions.rewardProtocol || defaultPack.instructions.rewardProtocol,
+            punishmentProtocol: pack.instructions && pack.instructions.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
         },
         stages: Array.isArray(pack.stages) ? pack.stages : [],
     };
@@ -725,34 +770,34 @@ async function generatePackFromGoal(fullPack = true) {
     const ctx = context();
     const settings = getSettings();
     const root = document.getElementById('stagecraft_panel');
-    const goal = root?.querySelector('#stagecraft_goal')?.value?.trim();
-    const stageCount = Math.min(50, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_stage_count')?.value) || settings.pack.stageCount || 7)));
+    const goal = elementValue(root, '#stagecraft_goal').trim();
+    const stageCount = Math.min(50, Math.max(1, Math.trunc(Number(elementValue(root, '#stagecraft_stage_count')) || settings.pack.stageCount || 7)));
 
     if (!goal) {
-        globalThis.toastr?.warning?.('Write a goal first.', DISPLAY_NAME);
+        notify('warning', 'Write a goal first.');
         return;
     }
 
     const prompt = buildPackPrompt(goal, stageCount, fullPack);
-    if (typeof ctx?.generateRaw !== 'function') {
-        await navigator.clipboard?.writeText?.(prompt);
-        globalThis.toastr?.warning?.('generateRaw is unavailable. I copied the pack prompt to your clipboard.', DISPLAY_NAME);
+    if (!ctx || typeof ctx.generateRaw !== 'function') {
+        await writeClipboard(prompt);
+        notify('warning', 'generateRaw is unavailable. I copied the pack prompt to your clipboard.');
         return;
     }
 
     try {
-        root?.classList.add('stagecraft-busy');
+        if (root) root.classList.add('stagecraft-busy');
         const response = await ctx.generateRaw(prompt);
         settings.pack = normalizePack(parseGeneratedJsonObject(response), stageCount);
         settings.actionChance = settings.pack.defaultActionChance;
         saveSettings();
         resetState();
-        globalThis.toastr?.success?.(fullPack ? 'Generated full pack from goal.' : 'Generated stage skeleton from goal.', DISPLAY_NAME);
+        notify('success', fullPack ? 'Generated full pack from goal.' : 'Generated stage skeleton from goal.');
     } catch (error) {
-        globalThis.toastr?.error?.(error.message, DISPLAY_NAME);
+        notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate pack`, error);
     } finally {
-        root?.classList.remove('stagecraft-busy');
+        if (root) root.classList.remove('stagecraft-busy');
     }
 }
 
@@ -804,22 +849,22 @@ async function generateStageMoves(kind) {
     const settings = getSettings();
     const stage = editedStage();
     const root = document.getElementById('stagecraft_panel');
-    const concept = root?.querySelector('#stagecraft_field_concept')?.value?.trim() || '';
-    const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || settings.fieldGenerateCount || 1)));
+    const concept = elementValue(root, '#stagecraft_field_concept').trim();
+    const count = Math.min(30, Math.max(1, Math.trunc(Number(elementValue(root, '#stagecraft_field_count')) || settings.fieldGenerateCount || 1)));
     settings.fieldGenerateCount = count;
     saveSettings();
 
     if (!stage) return;
 
-    if (typeof ctx?.generateRaw !== 'function') {
+    if (!ctx || typeof ctx.generateRaw !== 'function') {
         const prompt = buildMovePrompt(stage, kind, concept, count);
-        await navigator.clipboard?.writeText?.(prompt);
-        globalThis.toastr?.warning?.('generateRaw is unavailable. I copied the helper prompt to your clipboard.', DISPLAY_NAME);
+        await writeClipboard(prompt);
+        notify('warning', 'generateRaw is unavailable. I copied the helper prompt to your clipboard.');
         return;
     }
 
     try {
-        root?.classList.add('stagecraft-busy');
+        if (root) root.classList.add('stagecraft-busy');
         const prompt = buildMovePrompt(stage, kind, concept, count);
         const response = await ctx.generateRaw(prompt);
         const items = extractJsonArray(response);
@@ -830,12 +875,12 @@ async function generateStageMoves(kind) {
         resizePack(settings.pack, settings.pack.stageCount || settings.pack.stages.length);
         saveSettings();
         renderPanel();
-        globalThis.toastr?.success?.(`Generated ${items.length} ${kind} moves.`, DISPLAY_NAME);
+        notify('success', `Generated ${items.length} ${kind} moves.`);
     } catch (error) {
-        globalThis.toastr?.error?.(error.message, DISPLAY_NAME);
+        notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate ${kind} moves`, error);
     } finally {
-        root?.classList.remove('stagecraft-busy');
+        if (root) root.classList.remove('stagecraft-busy');
     }
 }
 
@@ -844,32 +889,32 @@ async function generateStageConditions() {
     const settings = getSettings();
     const stage = editedStage();
     const root = document.getElementById('stagecraft_panel');
-    const concept = root?.querySelector('#stagecraft_field_concept')?.value?.trim() || '';
-    const count = Math.min(30, Math.max(1, Math.trunc(Number(root?.querySelector('#stagecraft_field_count')?.value) || settings.fieldGenerateCount || 1)));
+    const concept = elementValue(root, '#stagecraft_field_concept').trim();
+    const count = Math.min(30, Math.max(1, Math.trunc(Number(elementValue(root, '#stagecraft_field_count')) || settings.fieldGenerateCount || 1)));
     settings.fieldGenerateCount = count;
     saveSettings();
 
     if (!stage) return;
 
-    if (typeof ctx?.generateRaw !== 'function') {
+    if (!ctx || typeof ctx.generateRaw !== 'function') {
         const prompt = buildConditionsPrompt(stage, concept, count);
-        await navigator.clipboard?.writeText?.(prompt);
-        globalThis.toastr?.warning?.('generateRaw is unavailable. I copied the helper prompt to your clipboard.', DISPLAY_NAME);
+        await writeClipboard(prompt);
+        notify('warning', 'generateRaw is unavailable. I copied the helper prompt to your clipboard.');
         return;
     }
 
     try {
-        root?.classList.add('stagecraft-busy');
+        if (root) root.classList.add('stagecraft-busy');
         const response = await ctx.generateRaw(buildConditionsPrompt(stage, concept, count));
         stage.advanceConditions = extractJsonArray(response);
         saveSettings();
         renderPanel();
-        globalThis.toastr?.success?.(`Generated ${stage.advanceConditions.length} conditions.`, DISPLAY_NAME);
+        notify('success', `Generated ${stage.advanceConditions.length} conditions.`);
     } catch (error) {
-        globalThis.toastr?.error?.(error.message, DISPLAY_NAME);
+        notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate conditions`, error);
     } finally {
-        root?.classList.remove('stagecraft-busy');
+        if (root) root.classList.remove('stagecraft-busy');
     }
 }
 
@@ -1154,56 +1199,56 @@ function bindPanel() {
     const root = document.getElementById('stagecraft_panel');
     if (!root) return;
 
-    root.querySelector('#stagecraft_enabled')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_enabled', 'change', event => {
         getSettings().enabled = event.target.checked;
         saveSettings();
     });
-    root.querySelector('#stagecraft_lock')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_lock', 'change', event => {
         getSettings().lockStage = event.target.checked;
         saveSettings();
     });
-    root.querySelector('#stagecraft_markers')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_markers', 'change', event => {
         getSettings().markerAutomation = event.target.checked;
         saveSettings();
     });
-    root.querySelector('#stagecraft_lists')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_lists', 'change', event => {
         getSettings().injectFullLists = event.target.checked;
         saveSettings();
     });
-    root.querySelector('#stagecraft_display_stage')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_display_stage', 'change', event => {
         getSettings().displayStage = event.target.checked;
         saveSettings();
         renderPanel();
     });
-    root.querySelector('#stagecraft_display_roll')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_display_roll', 'change', event => {
         getSettings().displayRoll = event.target.checked;
         saveSettings();
         renderPanel();
     });
-    root.querySelector('#stagecraft_injection_notice')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_injection_notice', 'change', event => {
         getSettings().showInjectionNotice = event.target.checked;
         saveSettings();
         renderPanel();
     });
-    root.querySelector('#stagecraft_auto_advance')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_auto_advance', 'change', event => {
         getSettings().autoAdvanceEnabled = event.target.checked;
         saveSettings();
         renderPanel();
     });
-    root.querySelector('#stagecraft_stage')?.addEventListener('change', event => setStage(event.target.value, 'selector'));
-    root.querySelector('#stagecraft_pack_name')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_stage', 'change', event => setStage(event.target.value, 'selector'));
+    addListener(root, '#stagecraft_pack_name', 'change', event => {
         const settings = getSettings();
         settings.pack.name = event.target.value.trim() || 'Stagecraft Pack';
         saveSettings();
         renderPanel();
     });
-    root.querySelector('#stagecraft_edit_stage')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_edit_stage', 'change', event => {
         const settings = getSettings();
         settings.editorStage = normalizeStage(event.target.value, settings.pack);
         saveSettings();
         renderPanel();
     });
-    root.querySelector('#stagecraft_add_move')?.addEventListener('click', () => {
+    addListener(root, '#stagecraft_add_move', 'click', () => {
         const stage = editedStage();
         stage.moves.push(normalizeMove('New move.', 'action'));
         saveSettings();
@@ -1212,7 +1257,7 @@ function bindPanel() {
     root.querySelectorAll('.stagecraft_delete_move').forEach(button => {
         button.addEventListener('click', event => {
             const row = event.target.closest('.stagecraft-move-row');
-            const index = Number(row?.dataset?.index);
+            const index = Number(row && row.dataset ? row.dataset.index : undefined);
             const stage = editedStage();
             if (Number.isInteger(index)) {
                 stage.moves.splice(index, 1);
@@ -1222,29 +1267,29 @@ function bindPanel() {
             }
         });
     });
-    root.querySelector('#stagecraft_save_stage')?.addEventListener('click', () => {
+    addListener(root, '#stagecraft_save_stage', 'click', () => {
         const stage = editedStage();
-        stage.name = root.querySelector('#stagecraft_stage_name')?.value?.trim() || `Stage ${stage.id}`;
-        stage.behavior = root.querySelector('#stagecraft_stage_behavior')?.value?.trim() || 'Describe the behavior for this stage.';
-        stage.advanceThreshold = Math.max(1, Math.trunc(Number(root.querySelector('#stagecraft_stage_threshold')?.value) || 3));
-        stage.advanceConditions = (root.querySelector('#stagecraft_stage_conditions')?.value || '')
+        stage.name = elementValue(root, '#stagecraft_stage_name').trim() || `Stage ${stage.id}`;
+        stage.behavior = elementValue(root, '#stagecraft_stage_behavior').trim() || 'Describe the behavior for this stage.';
+        stage.advanceThreshold = Math.max(1, Math.trunc(Number(elementValue(root, '#stagecraft_stage_threshold')) || 3));
+        stage.advanceConditions = elementValue(root, '#stagecraft_stage_conditions')
             .split(/\r?\n/)
             .map(line => line.trim())
             .filter(Boolean);
-        stage.moves = [...root.querySelectorAll('.stagecraft-move-row')].map(row => normalizeMove({
-            kind: row.querySelector('.stagecraft_move_kind')?.value || 'action',
-            label: row.querySelector('.stagecraft_move_label')?.value || '',
-            text: row.querySelector('.stagecraft_move_text')?.value || '',
-            trigger: row.querySelector('.stagecraft_move_trigger')?.value || '',
-            intensity: row.querySelector('.stagecraft_move_intensity')?.value || 1,
-            progress: row.querySelector('.stagecraft_move_progress')?.value || 0,
+        stage.moves = Array.prototype.slice.call(root.querySelectorAll('.stagecraft-move-row')).map(row => normalizeMove({
+            kind: elementValue(row, '.stagecraft_move_kind') || 'action',
+            label: elementValue(row, '.stagecraft_move_label'),
+            text: elementValue(row, '.stagecraft_move_text'),
+            trigger: elementValue(row, '.stagecraft_move_trigger'),
+            intensity: elementValue(row, '.stagecraft_move_intensity') || 1,
+            progress: elementValue(row, '.stagecraft_move_progress') || 0,
         }));
         migrateStageMoves(stage);
         saveSettings();
         renderPanel();
-        globalThis.toastr?.success?.('Stage saved.', DISPLAY_NAME);
+        notify('success', 'Stage saved.');
     });
-    root.querySelector('#stagecraft_stage_count')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_stage_count', 'change', event => {
         const settings = getSettings();
         resizePack(settings.pack, event.target.value);
         const state = getState();
@@ -1254,41 +1299,41 @@ function bindPanel() {
         void saveState();
         renderPanel();
     });
-    root.querySelector('#stagecraft_chance')?.addEventListener('input', event => {
+    addListener(root, '#stagecraft_chance', 'input', event => {
         getSettings().actionChance = Number(event.target.value);
         root.querySelector('#stagecraft_chance_value').textContent = String(event.target.value);
         saveSettings();
     });
-    root.querySelector('#stagecraft_action_every')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_action_every', 'change', event => {
         getSettings().actionEveryTurns = Math.max(1, Math.trunc(Number(event.target.value) || 1));
         saveSettings();
     });
-    root.querySelector('#stagecraft_auto_every')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_auto_every', 'change', event => {
         getSettings().autoAdvanceEveryTurns = Math.max(1, Math.trunc(Number(event.target.value) || 1));
         saveSettings();
     });
-    root.querySelector('#stagecraft_auto_chance')?.addEventListener('input', event => {
+    addListener(root, '#stagecraft_auto_chance', 'input', event => {
         getSettings().autoAdvanceChance = Number(event.target.value);
         root.querySelector('#stagecraft_auto_chance_value').textContent = String(event.target.value);
         saveSettings();
     });
-    root.querySelector('#stagecraft_prev')?.addEventListener('click', () => regressStage());
-    root.querySelector('#stagecraft_progress')?.addEventListener('click', () => addProgress(1));
-    root.querySelector('#stagecraft_next')?.addEventListener('click', () => advanceStage('manual'));
-    root.querySelector('#stagecraft_reset')?.addEventListener('click', () => resetState());
-    root.querySelector('#stagecraft_gen_skeleton')?.addEventListener('click', () => void generatePackFromGoal(false));
-    root.querySelector('#stagecraft_gen_pack')?.addEventListener('click', () => void generatePackFromGoal(true));
-    root.querySelector('#stagecraft_field_count')?.addEventListener('change', event => {
+    addListener(root, '#stagecraft_prev', 'click', () => regressStage());
+    addListener(root, '#stagecraft_progress', 'click', () => addProgress(1));
+    addListener(root, '#stagecraft_next', 'click', () => advanceStage('manual'));
+    addListener(root, '#stagecraft_reset', 'click', () => resetState());
+    addListener(root, '#stagecraft_gen_skeleton', 'click', () => void generatePackFromGoal(false));
+    addListener(root, '#stagecraft_gen_pack', 'click', () => void generatePackFromGoal(true));
+    addListener(root, '#stagecraft_field_count', 'change', event => {
         getSettings().fieldGenerateCount = Math.min(30, Math.max(1, Math.trunc(Number(event.target.value) || 1)));
         saveSettings();
     });
-    root.querySelector('#stagecraft_gen_actions')?.addEventListener('click', () => void generateStageMoves('action'));
-    root.querySelector('#stagecraft_gen_rewards')?.addEventListener('click', () => void generateStageMoves('reward'));
-    root.querySelector('#stagecraft_gen_punishments')?.addEventListener('click', () => void generateStageMoves('punishment'));
-    root.querySelector('#stagecraft_gen_conditions')?.addEventListener('click', () => void generateStageConditions());
-    root.querySelector('#stagecraft_import')?.addEventListener('change', event => importPack(event.target.files?.[0]));
-    root.querySelector('#stagecraft_export')?.addEventListener('click', () => exportPack());
-    root.querySelector('#stagecraft_apply_pack')?.addEventListener('click', () => {
+    addListener(root, '#stagecraft_gen_actions', 'click', () => void generateStageMoves('action'));
+    addListener(root, '#stagecraft_gen_rewards', 'click', () => void generateStageMoves('reward'));
+    addListener(root, '#stagecraft_gen_punishments', 'click', () => void generateStageMoves('punishment'));
+    addListener(root, '#stagecraft_gen_conditions', 'click', () => void generateStageConditions());
+    addListener(root, '#stagecraft_import', 'change', event => importPack(event.target.files && event.target.files[0]));
+    addListener(root, '#stagecraft_export', 'click', () => exportPack());
+    addListener(root, '#stagecraft_apply_pack', 'click', () => {
         try {
             const text = root.querySelector('#stagecraft_pack_editor').value;
             const pack = JSON.parse(text);
@@ -1299,7 +1344,7 @@ function bindPanel() {
             saveSettings();
             renderPanel();
         } catch (error) {
-            globalThis.toastr?.error?.(error.message, DISPLAY_NAME);
+            notify('error', error.message);
         }
     });
 }
@@ -1325,7 +1370,7 @@ function renderPanel() {
 
 function wireEvents() {
     const ctx = context();
-    if (!ctx?.eventSource || !ctx?.event_types) return;
+    if (!ctx || !ctx.eventSource || !ctx.event_types) return;
 
     ctx.eventSource.on(ctx.event_types.APP_READY, renderPanel);
     ctx.eventSource.on(ctx.event_types.CHAT_CHANGED, renderPanel);
