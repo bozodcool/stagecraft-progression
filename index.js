@@ -1,5 +1,7 @@
 const MODULE_NAME = 'stagecraft_progression';
 const DISPLAY_NAME = 'Stagecraft Progression';
+let activePanelTab = 'chat';
+let pendingGeneration = null;
 
 const defaultPack = {
     schema: 'stagecraft.pack.v1',
@@ -49,6 +51,7 @@ const defaultSettings = Object.freeze({
     fieldGenerateCount: 1,
     markerAutomation: true,
     scrubMarkers: true,
+    advanceOnProgressTarget: true,
     lockStage: false,
     pack: defaultPack,
 });
@@ -176,9 +179,28 @@ function sanitizeActorText(text) {
 function sanitizeStageContent(stage) {
     stage.name = sanitizeActorText(stage.name || `Stage ${stage.id}`);
     stage.behavior = sanitizeActorText(stage.behavior || 'Describe the behavior for this stage.');
-    stage.advanceConditions = (stage.advanceConditions || []).map(condition => sanitizeActorText(condition));
+    stage.advanceConditions = normalizeConditionList(stage.advanceConditions).map(condition => sanitizeActorText(condition));
     stage.moves = (stage.moves || []).map(move => normalizeMove(move));
     return stage;
+}
+
+function normalizeConditionList(value) {
+    if (Array.isArray(value)) {
+        return value
+            .map(item => String(item || '').trim())
+            .filter(Boolean);
+    }
+
+    if (typeof value === 'string') {
+        return value
+            .split(/\r?\n|;/)
+            .map(line => line.trim())
+            .map(line => line.replace(/^[-*]\s*/, ''))
+            .map(line => line.replace(/^\d+[.)]\s*/, ''))
+            .filter(Boolean);
+    }
+
+    return [];
 }
 
 function migrateStageMoves(stage) {
@@ -218,6 +240,14 @@ function resizePack(pack, stageCount) {
         const isFinal = index === resized.length - 1;
         stage.name = stage.name || `Stage ${stage.id}`;
         stage.behavior = stage.behavior || 'Describe the behavior for this stage.';
+        if (!Array.isArray(stage.advanceConditions) || !stage.advanceConditions.length) {
+            stage.advanceConditions = normalizeConditionList(
+                stage.advanceConditions
+                || stage.conditions
+                || stage.advancementConditions
+                || stage.requirements
+            );
+        }
         if (!Number.isFinite(Number(stage.advanceThreshold))) {
             stage.advanceThreshold = isFinal ? 999 : 3;
         }
@@ -226,6 +256,9 @@ function resizePack(pack, stageCount) {
         }
         migrateStageMoves(stage);
         sanitizeStageContent(stage);
+        delete stage.conditions;
+        delete stage.advancementConditions;
+        delete stage.requirements;
     });
 
     pack.stageCount = nextCount;
@@ -352,6 +385,7 @@ function setStage(stage, reason = 'manual') {
 }
 
 function addProgress(amount = 1, reason = 'manual') {
+    const settings = getSettings();
     const state = getState();
     state.progress = Math.max(0, Number(state.progress || 0) + amount);
     state.history.unshift({
@@ -362,6 +396,21 @@ function addProgress(amount = 1, reason = 'manual') {
         reason,
     });
     state.history = state.history.slice(0, 20);
+
+    const stage = activeStage();
+    const target = Number(stage.advanceThreshold || settings.pack.defaultAdvanceThreshold || 3);
+    const maxStage = settings.pack.stageCount || settings.pack.stages.length || 1;
+    if (
+        amount > 0
+        && settings.advanceOnProgressTarget
+        && !settings.lockStage
+        && state.progress >= target
+        && Number(state.stage) < maxStage
+    ) {
+        advanceStage('progress target');
+        return;
+    }
+
     void saveState();
     renderPanel();
 }
@@ -369,7 +418,8 @@ function addProgress(amount = 1, reason = 'manual') {
 function advanceStage(reason = 'marker') {
     const settings = getSettings();
     const state = getState();
-    if (settings.lockStage) return;
+    const automaticReasons = new Set(['marker', 'assistant marker', 'auto test', 'progress target']);
+    if (settings.lockStage && automaticReasons.has(reason)) return;
     setStage(state.stage + 1, reason);
 }
 
@@ -416,7 +466,7 @@ function buildInjection(type = 'normal') {
 
     const lines = [
         '[STAGECRAFT PROGRESSION - ACTIVE]',
-        'Injection code: 0.1.1',
+        'Injection code: 0.2.1',
         `Pack: ${settings.pack.name}`,
         `Progress counter: ${state.progress}/${threshold}`,
         `Generation type: ${type}`,
@@ -611,7 +661,8 @@ function extractJsonArray(text) {
     const parseAttempts = [];
     try {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+        const unwrapped = unwrapGeneratedArray(parsed);
+        if (unwrapped.length) return unwrapped;
     } catch (error) {
         parseAttempts.push(error.message);
         // Continue with fenced/plain JSON extraction.
@@ -622,7 +673,8 @@ function extractJsonArray(text) {
     if (fenced) {
         try {
             const parsed = JSON.parse(fenced.trim());
-            if (Array.isArray(parsed)) return parsed.filter(Boolean);
+            const unwrapped = unwrapGeneratedArray(parsed);
+            if (unwrapped.length) return unwrapped;
         } catch (error) {
             parseAttempts.push(error.message);
             // Continue with bracket extraction.
@@ -647,6 +699,18 @@ function extractJsonArray(text) {
     if (fallback.length) return fallback;
 
     throw new Error(`The model did not return a usable list. ${parseAttempts[0] || ''}`.trim());
+}
+
+function unwrapGeneratedArray(value) {
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (!value || typeof value !== 'object') return [];
+
+    const candidateKeys = ['conditions', 'advanceConditions', 'items', 'moves', 'results', 'data', 'list'];
+    for (const key of candidateKeys) {
+        if (Array.isArray(value[key])) return value[key].filter(Boolean);
+    }
+
+    return [];
 }
 
 function repairLooseJsonArray(text) {
@@ -812,11 +876,14 @@ async function generatePackFromGoal(fullPack = true) {
             responseLength: fullPack ? 8192 : 4096,
             trimNames: false,
         });
-        settings.pack = normalizePack(parseGeneratedJsonObject(response), stageCount);
-        settings.actionChance = settings.pack.defaultActionChance;
-        saveSettings();
-        resetState();
-        notify('success', fullPack ? 'Generated full pack from goal.' : 'Generated stage skeleton from goal.');
+        pendingGeneration = {
+            type: 'pack',
+            pack: normalizePack(parseGeneratedJsonObject(response), stageCount),
+            label: fullPack ? 'Full pack' : 'Stage skeleton',
+        };
+        activePanelTab = 'generate';
+        renderPanel();
+        notify('success', 'Generation ready to review.');
     } catch (error) {
         notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate pack`, error);
@@ -872,6 +939,29 @@ function buildConditionsPrompt(stage, concept, count) {
     ].join('\n');
 }
 
+function buildStageBundlePrompt(stage, concept, count) {
+    return [
+        'Generate roleplay progression stage material.',
+        'Return only valid JSON. No markdown, no commentary.',
+        'Return a single JSON object with exactly two keys: "moves" and "advanceConditions".',
+        `"moves" must be a JSON array of exactly ${count} objects.`,
+        '"advanceConditions" must be a JSON array of exactly 2 strings.',
+        'Each move object must include: kind, label, text, trigger, intensity, progress.',
+        'Use move kinds such as action, reward, punishment, test, repair, ritual, and transition.',
+        'Label must be a short title of 2-5 words, not a full sentence.',
+        'Text must be the full playable move.',
+        'Use {{char}} as the actor in every move. Do not use System as an actor.',
+        'Never make SillyTavern System, Stagecraft, assistant, narrator, or the system prompt perform a move.',
+        '',
+        `Stage ID: ${stage.id}`,
+        `Stage name: ${stage.name}`,
+        `Stage behavior: ${stage.behavior}`,
+        `User concept: ${concept || 'Use the stage behavior as the concept.'}`,
+        '',
+        'Keep items reusable, specific enough to play, and phrased as short actionable entries.',
+    ].join('\n');
+}
+
 async function generateStageMoves(kind) {
     const ctx = context();
     const settings = getSettings();
@@ -896,14 +986,16 @@ async function generateStageMoves(kind) {
         const prompt = buildMovePrompt(stage, kind, concept, count);
         const response = await ctx.generateRaw(prompt);
         const items = takeGeneratedItems(extractJsonArray(response), count);
-        stage.moves = [
-            ...(stage.moves || []).map(move => normalizeMove(move)),
-            ...items.map(item => normalizeMove(item, kind)),
-        ];
-        resizePack(settings.pack, settings.pack.stageCount || settings.pack.stages.length);
-        saveSettings();
+        pendingGeneration = {
+            type: 'moves',
+            stageId: stage.id,
+            kind,
+            items: items.map(item => normalizeMove(item, kind)),
+            label: `${kind} moves`,
+        };
+        activePanelTab = 'generate';
         renderPanel();
-        notify('success', `Generated ${items.length} ${kind} ${items.length === 1 ? 'move' : 'moves'}.`);
+        notify('success', `Generated ${items.length} ${kind} ${items.length === 1 ? 'move' : 'moves'} to review.`);
     } catch (error) {
         notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate ${kind} moves`, error);
@@ -934,10 +1026,16 @@ async function generateStageConditions() {
     try {
         if (root) root.classList.add('stagecraft-busy');
         const response = await ctx.generateRaw(buildConditionsPrompt(stage, concept, count));
-        stage.advanceConditions = takeGeneratedItems(extractJsonArray(response), count);
-        saveSettings();
+        const items = takeGeneratedItems(extractJsonArray(response), count).map(item => sanitizeActorText(String(item)));
+        pendingGeneration = {
+            type: 'conditions',
+            stageId: stage.id,
+            items,
+            label: 'Advancement conditions',
+        };
+        activePanelTab = 'generate';
         renderPanel();
-        notify('success', `Generated ${stage.advanceConditions.length} ${stage.advanceConditions.length === 1 ? 'condition' : 'conditions'}.`);
+        notify('success', `Generated ${items.length} ${items.length === 1 ? 'condition' : 'conditions'} to review.`);
     } catch (error) {
         notify('error', error.message);
         console.error(`${DISPLAY_NAME}: failed to generate conditions`, error);
@@ -946,21 +1044,154 @@ async function generateStageConditions() {
     }
 }
 
+async function generateStageBundle() {
+    const ctx = context();
+    const settings = getSettings();
+    const stage = editedStage();
+    const root = document.getElementById('stagecraft_panel');
+    const concept = elementValue(root, '#stagecraft_field_concept').trim();
+    const count = Math.min(30, Math.max(1, Math.trunc(Number(elementValue(root, '#stagecraft_field_count')) || settings.fieldGenerateCount || 1)));
+    settings.fieldGenerateCount = count;
+    saveSettings();
+
+    if (!stage) return;
+
+    const prompt = buildStageBundlePrompt(stage, concept, count);
+    if (!ctx || typeof ctx.generateRaw !== 'function') {
+        await writeClipboard(prompt);
+        notify('warning', 'generateRaw is unavailable. I copied the helper prompt to your clipboard.');
+        return;
+    }
+
+    try {
+        if (root) root.classList.add('stagecraft-busy');
+        const response = await ctx.generateRaw(prompt);
+        const parsed = parseGeneratedJsonObject(response);
+        const moves = takeGeneratedItems(unwrapGeneratedArray(parsed.moves), count).map(item => normalizeMove(item));
+        const conditions = takeGeneratedItems(unwrapGeneratedArray(parsed.advanceConditions), 2).map(item => sanitizeActorText(String(item)));
+        pendingGeneration = {
+            type: 'bundle',
+            stageId: stage.id,
+            moves,
+            conditions,
+            label: 'Stage bundle',
+        };
+        activePanelTab = 'generate';
+        renderPanel();
+        notify('success', `Generated ${moves.length} ${moves.length === 1 ? 'move' : 'moves'} and ${conditions.length} ${conditions.length === 1 ? 'condition' : 'conditions'} to review.`);
+    } catch (error) {
+        notify('error', error.message);
+        console.error(`${DISPLAY_NAME}: failed to generate stage bundle`, error);
+    } finally {
+        if (root) root.classList.remove('stagecraft-busy');
+    }
+}
+
+function generationPreviewHtml() {
+    if (!pendingGeneration) return '';
+
+    let summary = '';
+    if (pendingGeneration.type === 'pack') {
+        summary = pendingGeneration.pack.stages
+            .map(stage => `<li><strong>${stage.id}. ${escapeHtml(stage.name)}</strong><span>${escapeHtml(stage.behavior)}</span></li>`)
+            .join('');
+    } else if (pendingGeneration.type === 'moves') {
+        summary = pendingGeneration.items
+            .map(move => `<li><strong>${escapeHtml(move.label)}</strong><span>${escapeHtml(move.text)}</span></li>`)
+            .join('');
+    } else if (pendingGeneration.type === 'bundle') {
+        const moveItems = pendingGeneration.moves
+            .map(move => `<li><strong>${escapeHtml(move.label)}</strong><span>${escapeHtml(move.text)}</span></li>`)
+            .join('');
+        const conditionItems = pendingGeneration.conditions
+            .map(condition => `<li><span>${escapeHtml(condition)}</span></li>`)
+            .join('');
+        summary = `
+            <li class="stagecraft-preview-subhead"><strong>Moves</strong></li>
+            ${moveItems || '<li><span>No usable moves were generated.</span></li>'}
+            <li class="stagecraft-preview-subhead"><strong>Advancement conditions</strong></li>
+            ${conditionItems || '<li><span>No usable conditions were generated.</span></li>'}
+        `;
+    } else {
+        summary = pendingGeneration.items
+            .map(condition => `<li><span>${escapeHtml(condition)}</span></li>`)
+            .join('');
+    }
+
+    const effect = pendingGeneration.type === 'pack'
+        ? 'Applying replaces the current pack and resets chat progression.'
+        : pendingGeneration.type === 'conditions'
+            ? `Applying replaces the advancement conditions for stage ${pendingGeneration.stageId}.`
+            : pendingGeneration.type === 'bundle'
+                ? `Applying adds generated moves and replaces advancement conditions for stage ${pendingGeneration.stageId}.`
+            : `Applying adds these moves to stage ${pendingGeneration.stageId}.`;
+
+    return `
+        <div class="stagecraft-generation-preview">
+            <div class="stagecraft-section-heading">
+                <span>Review generated content</span>
+                <strong>${escapeHtml(pendingGeneration.label)}</strong>
+            </div>
+            <ul>${summary || '<li>No usable items were generated.</li>'}</ul>
+            <p>${effect}</p>
+            <div class="stagecraft-preview-actions">
+                <button id="stagecraft_discard_generation" class="menu_button" type="button">Discard</button>
+                <button id="stagecraft_apply_generation" class="menu_button" type="button"><i class="fa-solid fa-check"></i><span>Apply</span></button>
+            </div>
+        </div>`;
+}
+
+function applyPendingGeneration() {
+    if (!pendingGeneration) return;
+
+    const settings = getSettings();
+    const pending = pendingGeneration;
+    if (pending.type === 'pack') {
+        settings.pack = pending.pack;
+        settings.actionChance = settings.pack.defaultActionChance;
+        pendingGeneration = null;
+        saveSettings();
+        resetState();
+        notify('success', 'Generated pack applied.');
+        return;
+    }
+
+    const stage = settings.pack.stages.find(item => Number(item.id) === Number(pending.stageId));
+    if (!stage) {
+        notify('error', `Stage ${pending.stageId} no longer exists.`);
+        return;
+    }
+
+    if (pending.type === 'moves') {
+        stage.moves = [
+            ...(stage.moves || []).map(move => normalizeMove(move)),
+            ...pending.items.map(move => normalizeMove(move, pending.kind)),
+        ];
+    } else if (pending.type === 'bundle') {
+        stage.moves = [
+            ...(stage.moves || []).map(move => normalizeMove(move)),
+            ...pending.moves.map(move => normalizeMove(move)),
+        ];
+        stage.advanceConditions = pending.conditions;
+        settings.editorStage = normalizeStage(pending.stageId, settings.pack);
+        activePanelTab = 'stages';
+    } else if (pending.type === 'conditions') {
+        stage.advanceConditions = pending.items;
+        settings.editorStage = normalizeStage(pending.stageId, settings.pack);
+        activePanelTab = 'stages';
+    }
+
+    pendingGeneration = null;
+    resizePack(settings.pack, settings.pack.stageCount || settings.pack.stages.length);
+    saveSettings();
+    renderPanel();
+    notify('success', 'Generated content applied.');
+}
+
 function panelHtml(settings, state, stage) {
     const threshold = Number(stage.advanceThreshold || settings.pack.defaultAdvanceThreshold || 3);
     const stageCount = settings.pack.stageCount || settings.pack.stages.length || 7;
-    const statusStage = settings.displayStage
-        ? `<strong>Stage ${stage.id}/${stageCount}</strong><span>${escapeHtml(stage.name)}</span>`
-        : '<strong>Stage Hidden</strong><span>State is still active</span>';
-    const statusRoll = settings.displayRoll && state.lastOutcome
-        ? `<div class="stagecraft-roll">${escapeHtml(state.lastOutcome)}</div>`
-        : '';
-    const advanceTest = state.lastAdvanceTest
-        ? `<div class="stagecraft-roll">${escapeHtml(state.lastAdvanceTest)}</div>`
-        : '';
-    const injectionNotice = settings.showInjectionNotice && state.lastInjectionNotice
-        ? `<div class="stagecraft-roll">${escapeHtml(state.lastInjectionNotice)}</div>`
-        : '';
+    const progressPercent = Math.min(100, Math.max(0, (Number(state.progress) / Math.max(1, threshold)) * 100));
     const stageOptions = settings.pack.stages.map(item => {
         const selected = Number(item.id) === Number(state.stage) ? 'selected' : '';
         return `<option value="${item.id}" ${selected}>${item.id}. ${escapeHtml(item.name)}</option>`;
@@ -970,6 +1201,26 @@ function panelHtml(settings, state, stage) {
         const selected = Number(item.id) === Number(editStage.id) ? 'selected' : '';
         return `<option value="${item.id}" ${selected}>${item.id}. ${escapeHtml(item.name)}</option>`;
     }).join('');
+    const timeline = settings.pack.stages.map(item => {
+        const stateClass = Number(item.id) < Number(stage.id)
+            ? 'is-complete'
+            : Number(item.id) === Number(stage.id) ? 'is-active' : '';
+        return `<button type="button" class="stagecraft-stage-step ${stateClass}" data-stage="${item.id}" title="${escapeHtml(item.name)}" aria-label="Stage ${item.id}: ${escapeHtml(item.name)}">${item.id}</button>`;
+    }).join('<span class="stagecraft-stage-connector"></span>');
+    const conditions = (stage.advanceConditions || []).map(condition => `<li>${escapeHtml(condition)}</li>`).join('');
+    const activityRows = [
+        state.lastAction ? `<div><span>Selected action</span><strong>${escapeHtml(state.lastAction)}</strong></div>` : '',
+        state.lastOutcome ? `<div><span>Action pacing</span><strong>${escapeHtml(state.lastOutcome)}</strong></div>` : '',
+        state.lastAdvanceTest ? `<div><span>Advancement</span><strong>${escapeHtml(state.lastAdvanceTest)}</strong></div>` : '',
+        settings.showInjectionNotice && state.lastInjectionNotice
+            ? `<div><span>Prompt injection</span><strong>${escapeHtml(state.lastInjectionNotice)}</strong></div>`
+            : '',
+    ].filter(Boolean).join('');
+    const tabButton = (id, label, icon) => `
+        <button type="button" class="stagecraft-tab ${activePanelTab === id ? 'is-active' : ''}" data-tab="${id}" role="tab" aria-selected="${activePanelTab === id}">
+            <i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span>
+        </button>`;
+    const tabPanelClass = id => `stagecraft-tab-panel ${activePanelTab === id ? 'is-active' : ''}`;
 
     return `
         <div id="stagecraft_panel" class="stagecraft-panel">
@@ -979,176 +1230,152 @@ function panelHtml(settings, state, stage) {
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
-                    <div class="stagecraft-status">
-                        <div>
-                            ${statusStage}
-                            ${statusRoll}
-                            ${advanceTest}
-                            ${injectionNotice}
+                    <div class="stagecraft-commandbar">
+                        <div class="stagecraft-commandbar-topline">
+                            <label class="stagecraft-enabled-toggle" title="Enable or disable Stagecraft prompt injection">
+                                <input id="stagecraft_enabled" type="checkbox" ${settings.enabled ? 'checked' : ''}>
+                                <span>Enabled</span>
+                            </label>
+                            <strong class="stagecraft-active-pack" title="Active pack">${escapeHtml(settings.pack.name || 'Stagecraft Pack')}</strong>
+                            <label class="stagecraft-lock-toggle" title="Prevent automatic stage changes">
+                                <input id="stagecraft_lock" type="checkbox" ${settings.lockStage ? 'checked' : ''}>
+                                <i class="fa-solid ${settings.lockStage ? 'fa-lock' : 'fa-lock-open'}" aria-hidden="true"></i>
+                                <span>Lock</span>
+                            </label>
                         </div>
-                        <div>${state.progress}/${threshold}</div>
+                        <div class="stagecraft-live-controls">
+                            <div class="stagecraft-stage-control">
+                                <button id="stagecraft_prev" class="menu_button stagecraft-icon-button" type="button" title="Previous stage" aria-label="Previous stage" ${Number(stage.id) <= 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>
+                                <select id="stagecraft_stage" aria-label="Current active stage">${stageOptions}</select>
+                                <button id="stagecraft_next" class="menu_button stagecraft-icon-button" type="button" title="Next stage" aria-label="Next stage" ${Number(stage.id) >= stageCount ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                            <div class="stagecraft-progress-control" title="Current progress toward this stage's target">
+                                <button id="stagecraft_progress_down" class="menu_button stagecraft-icon-button" type="button" title="Decrease progress" aria-label="Decrease progress" ${Number(state.progress) <= 0 ? 'disabled' : ''}><i class="fa-solid fa-minus"></i></button>
+                                <span><strong>${state.progress}</strong> / ${threshold}</span>
+                                <button id="stagecraft_progress" class="menu_button stagecraft-icon-button" type="button" title="Add progress" aria-label="Add progress"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                        </div>
                     </div>
-                    <section class="stagecraft-section stagecraft-runtime">
-                        <h4>Runtime</h4>
-                        <p>Controls what the live chat is using right now.</p>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_enabled" type="checkbox" ${settings.enabled ? 'checked' : ''}>
-                            Enabled
-                        </label>
-                        <label for="stagecraft_stage">Current active stage</label>
-                        <select id="stagecraft_stage">${stageOptions}</select>
-                        <div class="stagecraft-buttons">
-                            <button id="stagecraft_prev" class="menu_button">Back</button>
-                            <button id="stagecraft_progress" class="menu_button">+ Progress</button>
-                            <button id="stagecraft_next" class="menu_button">Advance</button>
-                            <button id="stagecraft_reset" class="menu_button danger">Reset</button>
+
+                    <div class="stagecraft-tabs" role="tablist" aria-label="Stagecraft sections">
+                        ${tabButton('chat', 'Current Chat', 'fa-message')}
+                        ${tabButton('stages', 'Stages', 'fa-list-ol')}
+                        ${tabButton('generate', 'Generate', 'fa-wand-magic-sparkles')}
+                        ${tabButton('settings', 'Settings', 'fa-sliders')}
+                    </div>
+
+                    <section class="${tabPanelClass('chat')}" data-panel="chat" role="tabpanel">
+                        <div class="stagecraft-stage-timeline" aria-label="Stage timeline">${timeline}</div>
+                        <div class="stagecraft-current-heading">
+                            <div>
+                                <span>Stage ${stage.id} of ${stageCount}</span>
+                                <h4>${escapeHtml(stage.name)}</h4>
+                            </div>
+                            <div class="stagecraft-progress-summary">
+                                <span>${state.progress} / ${threshold}</span>
+                                <div class="stagecraft-progress-track"><span style="width:${progressPercent}%"></span></div>
+                            </div>
                         </div>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_lock" type="checkbox" ${settings.lockStage ? 'checked' : ''}>
-                            Lock current stage
-                        </label>
+                        <div class="stagecraft-chat-layout">
+                            <div class="stagecraft-stage-copy">
+                                <h5>Current behavior</h5>
+                                <p>${escapeHtml(stage.behavior)}</p>
+                                <h5>Ready to advance when</h5>
+                                <ul>${conditions || '<li>No advancement conditions defined.</li>'}</ul>
+                            </div>
+                            <div class="stagecraft-activity">
+                                <h5>Latest activity</h5>
+                                ${activityRows || '<p>No Stagecraft activity recorded yet.</p>'}
+                            </div>
+                        </div>
+                        <div class="stagecraft-danger-row">
+                            <button id="stagecraft_reset" class="menu_button danger" type="button"><i class="fa-solid fa-arrow-rotate-left"></i><span>Reset chat progression</span></button>
+                        </div>
                     </section>
 
-                    <section class="stagecraft-section stagecraft-editor-section">
-                        <h4>Stage Editor</h4>
-                        <p>Edits stage content. This does not change the active stage unless you choose it above.</p>
-                        <label for="stagecraft_pack_name">Stage setup name</label>
-                        <input id="stagecraft_pack_name" type="text" value="${escapeHtml(settings.pack.name || 'Stagecraft Pack')}">
-                        <label for="stagecraft_stage_count">Number of stages</label>
-                        <input id="stagecraft_stage_count" type="number" min="1" max="50" step="1" value="${stageCount}">
-                        <label for="stagecraft_edit_stage">Edit stage content</label>
-                        <select id="stagecraft_edit_stage">${editStageOptions}</select>
+                    <section class="${tabPanelClass('stages')}" data-panel="stages" role="tabpanel">
+                        <div class="stagecraft-pack-toolbar">
+                            <label>Pack name<input id="stagecraft_pack_name" type="text" value="${escapeHtml(settings.pack.name || 'Stagecraft Pack')}"></label>
+                            <label>Stage count<input id="stagecraft_stage_count" type="number" min="1" max="50" step="1" value="${stageCount}"></label>
+                            <label class="menu_button stagecraft-file-button" for="stagecraft_import"><i class="fa-solid fa-file-import"></i><span>Import</span></label>
+                            <input id="stagecraft_import" type="file" accept="application/json">
+                            <button id="stagecraft_export" class="menu_button" type="button"><i class="fa-solid fa-file-export"></i><span>Export</span></button>
+                        </div>
+                        <div class="stagecraft-editor-picker">
+                            <label for="stagecraft_edit_stage">Editing stage</label>
+                            <select id="stagecraft_edit_stage">${editStageOptions}</select>
+                        </div>
                         ${stageEditorHtml(editStage)}
                     </section>
 
-                    <section class="stagecraft-section stagecraft-automation">
-                        <h4>Automation</h4>
-                        <p>Controls how often moves and stage jumps happen automatically.</p>
-                        <label for="stagecraft_action_every">Pick action every X assistant turns</label>
-                        <input id="stagecraft_action_every" type="number" min="1" max="100" step="1" value="${settings.actionEveryTurns}">
-                        <label for="stagecraft_chance">Action chance: <span id="stagecraft_chance_value">${settings.actionChance}</span>%</label>
-                        <input id="stagecraft_chance" type="range" min="0" max="100" step="5" value="${settings.actionChance}">
-                        <label class="checkbox_label">
-                            <input id="stagecraft_auto_advance" type="checkbox" ${settings.autoAdvanceEnabled ? 'checked' : ''}>
-                            Auto-test stage advancement
-                        </label>
-                        <label for="stagecraft_auto_every">Test advancement every X assistant turns</label>
-                        <input id="stagecraft_auto_every" type="number" min="1" max="100" step="1" value="${settings.autoAdvanceEveryTurns}">
-                        <label for="stagecraft_auto_chance">Advance threshold: <span id="stagecraft_auto_chance_value">${settings.autoAdvanceChance}</span>%</label>
-                        <input id="stagecraft_auto_chance" type="range" min="0" max="100" step="5" value="${settings.autoAdvanceChance}">
-                        <label class="checkbox_label">
-                            <input id="stagecraft_markers" type="checkbox" ${settings.markerAutomation ? 'checked' : ''}>
-                            React to [stagecraft:*] markers
-                        </label>
-                    </section>
-
-                    <section class="stagecraft-section stagecraft-display-options">
-                        <h4>Display Options</h4>
-                        <p>Controls debug visibility and how much Stagecraft includes in prompts.</p>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>
-                            Inject full move list (debug/noisy)
-                        </label>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>
-                            Display stage
-                        </label>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>
-                            Display roll
-                        </label>
-                        <label class="checkbox_label">
-                            <input id="stagecraft_injection_notice" type="checkbox" ${settings.showInjectionNotice ? 'checked' : ''}>
-                            Show injection notice
-                        </label>
-                    </section>
-
-                    <section class="stagecraft-section stagecraft-generate-section">
-                        <h4>Generate</h4>
-                        <p>Use the active SillyTavern model to draft stages or fill the selected stage.</p>
-                        <div class="stagecraft-generator">
+                    <section class="${tabPanelClass('generate')}" data-panel="generate" role="tabpanel">
+                        <div class="stagecraft-generate-block">
+                            <div class="stagecraft-section-heading">
+                                <span>Whole pack</span>
+                                <strong>${escapeHtml(settings.pack.name || 'Stagecraft Pack')}</strong>
+                            </div>
                             <label for="stagecraft_goal">Character / progression goal</label>
                             <textarea id="stagecraft_goal" rows="3" spellcheck="true" placeholder="Example: A shy assistant gradually becomes confident, protective, and central to the user's daily routine."></textarea>
                             <div class="stagecraft-generate-buttons">
-                                <button id="stagecraft_gen_skeleton" class="menu_button">Generate Stage Skeleton</button>
-                                <button id="stagecraft_gen_pack" class="menu_button">Generate Full Pack</button>
+                                <button id="stagecraft_gen_skeleton" class="menu_button" type="button">Generate skeleton</button>
+                                <button id="stagecraft_gen_pack" class="menu_button" type="button">Generate full pack</button>
                             </div>
                         </div>
-                        <div class="stagecraft-generator">
-                            <label for="stagecraft_field_concept">Selected-stage concept</label>
+                        <div class="stagecraft-generate-block">
+                            <div class="stagecraft-section-heading">
+                                <span>Selected stage</span>
+                                <strong>${editStage.id}. ${escapeHtml(editStage.name)}</strong>
+                            </div>
+                            <label for="stagecraft_field_concept">Concept</label>
                             <textarea id="stagecraft_field_concept" rows="3" spellcheck="true" placeholder="Small note, vibe, relationship beat, scene rule, or action theme."></textarea>
-                            <label for="stagecraft_field_count">Items to generate</label>
-                            <input id="stagecraft_field_count" type="number" min="1" max="30" step="1" value="${settings.fieldGenerateCount || 1}">
+                            <label class="stagecraft-count-field" for="stagecraft_field_count">Items<input id="stagecraft_field_count" type="number" min="1" max="30" step="1" value="${settings.fieldGenerateCount || 1}"></label>
                             <div class="stagecraft-generate-buttons">
-                                <button id="stagecraft_gen_actions" class="menu_button">Generate Actions</button>
-                                <button id="stagecraft_gen_rewards" class="menu_button">Generate Reward Moves</button>
-                                <button id="stagecraft_gen_punishments" class="menu_button">Generate Punishment Moves</button>
-                                <button id="stagecraft_gen_conditions" class="menu_button">Generate Conditions</button>
+                                <button id="stagecraft_gen_bundle" class="menu_button" type="button">Stage bundle</button>
+                                <button id="stagecraft_gen_actions" class="menu_button" type="button">Actions</button>
+                                <button id="stagecraft_gen_rewards" class="menu_button" type="button">Rewards</button>
+                                <button id="stagecraft_gen_punishments" class="menu_button" type="button">Consequences</button>
+                                <button id="stagecraft_gen_conditions" class="menu_button" type="button">Conditions</button>
                             </div>
                         </div>
+                        ${generationPreviewHtml()}
                     </section>
 
-                    <section class="stagecraft-section stagecraft-advanced">
-                        <h4>Advanced</h4>
-                        <p>Import/export packs or edit the raw JSON directly.</p>
-                        <details class="stagecraft-help">
-                            <summary>Help: what every control does</summary>
-                            <div>
-                                <strong>Runtime</strong>
-                                <ul>
-                                    <li><b>Enabled</b>: turns Stagecraft prompt injection on or off.</li>
-                                    <li><b>Current active stage</b>: the stage used in live roleplay.</li>
-                                    <li><b>Back / Advance / Reset</b>: manually changes progression.</li>
-                                    <li><b>+ Progress</b>: increases the progress counter for the current stage.</li>
-                                    <li><b>Lock current stage</b>: prevents automatic stage changes.</li>
-                                </ul>
-                                <strong>Stage Editor</strong>
-                                <ul>
-                                    <li><b>Number of stages</b>: resizes the pack from 1 to 50 stages.</li>
-                                    <li><b>Stage setup name</b>: names this reusable pack and export file.</li>
-                                    <li><b>Edit stage content</b>: chooses which stage you are editing, separate from the active stage.</li>
-                                    <li><b>Stage name</b>: short title shown in selectors.</li>
-                                    <li><b>Behavior</b>: the general behavior for {{char}} in this stage.</li>
-                                    <li><b>Advance threshold</b>: progress target for this stage.</li>
-                                    <li><b>Advancement conditions</b>: story conditions that suggest this stage is ready to move forward.</li>
-                                    <li><b>Moves</b>: things {{char}} can do. Type controls the move's purpose.</li>
-                                    <li><b>Save Stage</b>: writes editor changes into the current pack.</li>
-                                </ul>
-                                <strong>Automation</strong>
-                                <ul>
-                                    <li><b>Pick action every X assistant turns</b>: how often Stagecraft is allowed to suggest a forced action.</li>
-                                    <li><b>Action chance</b>: percent chance to pick an action on those turns.</li>
-                                    <li><b>Auto-test stage advancement</b>: enables random advancement checks.</li>
-                                    <li><b>Test advancement every X assistant turns</b>: how often to test advancement.</li>
-                                    <li><b>Advance threshold %</b>: chance that an advancement test succeeds.</li>
-                                    <li><b>React to [stagecraft:*] markers</b>: lets model tags like [stagecraft:advance] affect state.</li>
-                                </ul>
-                                <strong>Generate</strong>
-                                <ul>
-                                    <li><b>Character / progression goal</b>: high-level idea for generating a stage skeleton or full pack.</li>
-                                    <li><b>Generate Stage Skeleton</b>: creates stage names, behavior, and conditions.</li>
-                                    <li><b>Generate Full Pack</b>: creates stages plus moves.</li>
-                                    <li><b>Selected-stage concept</b>: prompt for generating content only for the selected edit stage.</li>
-                                    <li><b>Generate Actions / Reward Moves / Punishment Moves / Conditions</b>: fills that part of the selected stage.</li>
-                                </ul>
-                                <strong>Advanced</strong>
-                                <ul>
-                                    <li><b>Inject full move list</b>: includes all active-stage moves in the prompt.</li>
-                                    <li><b>Display stage / Display roll</b>: controls visible debug info in the injected prompt/panel.</li>
-                                    <li><b>Show injection notice</b>: shows the latest injected stage and picked action in the panel.</li>
-                                    <li><b>Import / Export Pack</b>: load or save pack JSON.</li>
-                                    <li><b>Raw JSON editor</b>: bulk edit the whole pack.</li>
-                                    <li><b>Apply Edited Pack</b>: applies the raw JSON editor contents.</li>
-                                </ul>
+                    <section class="${tabPanelClass('settings')}" data-panel="settings" role="tabpanel">
+                        <div class="stagecraft-settings-group">
+                            <h4>Action pacing</h4>
+                            <div class="stagecraft-settings-grid">
+                                <label>Try an action every<input id="stagecraft_action_every" type="number" min="1" max="100" step="1" value="${settings.actionEveryTurns}"><span>assistant turns</span></label>
+                                <label>Chance on eligible turns<div class="stagecraft-range-row"><input id="stagecraft_chance" type="range" min="0" max="100" step="5" value="${settings.actionChance}"><strong id="stagecraft_chance_value">${settings.actionChance}%</strong></div></label>
+                            </div>
+                        </div>
+                        <div class="stagecraft-settings-group">
+                            <h4>Stage progression</h4>
+                            <label class="checkbox_label"><input id="stagecraft_progress_target" type="checkbox" ${settings.advanceOnProgressTarget ? 'checked' : ''}>Advance when progress reaches the stage target</label>
+                            <label class="checkbox_label"><input id="stagecraft_auto_advance" type="checkbox" ${settings.autoAdvanceEnabled ? 'checked' : ''}>Enable random advancement checks</label>
+                            <div class="stagecraft-settings-grid stagecraft-dependent ${settings.autoAdvanceEnabled ? '' : 'is-disabled'}">
+                                <label>Check every<input id="stagecraft_auto_every" type="number" min="1" max="100" step="1" value="${settings.autoAdvanceEveryTurns}" ${settings.autoAdvanceEnabled ? '' : 'disabled'}><span>assistant turns</span></label>
+                                <label>Advancement chance<div class="stagecraft-range-row"><input id="stagecraft_auto_chance" type="range" min="0" max="100" step="5" value="${settings.autoAdvanceChance}" ${settings.autoAdvanceEnabled ? '' : 'disabled'}><strong id="stagecraft_auto_chance_value">${settings.autoAdvanceChance}%</strong></div></label>
+                            </div>
+                        </div>
+                        <div class="stagecraft-settings-group">
+                            <h4>Model control markers</h4>
+                            <label class="checkbox_label"><input id="stagecraft_markers" type="checkbox" ${settings.markerAutomation ? 'checked' : ''}>Process [stagecraft:*] markers</label>
+                            <label class="checkbox_label stagecraft-dependent ${settings.markerAutomation ? '' : 'is-disabled'}"><input id="stagecraft_scrub_markers" type="checkbox" ${settings.scrubMarkers ? 'checked' : ''} ${settings.markerAutomation ? '' : 'disabled'}>Remove processed markers from messages</label>
+                        </div>
+                        <details class="stagecraft-advanced-options">
+                            <summary>Prompt and debugging</summary>
+                            <div class="stagecraft-option-list">
+                                <label class="checkbox_label"><input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>Include current stage label in the prompt</label>
+                                <label class="checkbox_label"><input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>Include action roll result in the prompt</label>
+                                <label class="checkbox_label"><input id="stagecraft_injection_notice" type="checkbox" ${settings.showInjectionNotice ? 'checked' : ''}>Show latest injection in Current Chat</label>
+                                <label class="checkbox_label"><input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>Inject every move from the active stage</label>
                             </div>
                         </details>
-                        <div class="stagecraft-pack-row">
-                            <label class="menu_button" for="stagecraft_import">Import Pack</label>
-                            <input id="stagecraft_import" type="file" accept="application/json">
-                            <button id="stagecraft_export" class="menu_button">Export Pack</button>
-                        </div>
-                        <textarea id="stagecraft_pack_editor" class="stagecraft-raw-editor" spellcheck="false">${escapeHtml(JSON.stringify(settings.pack, null, 2))}</textarea>
-                        <button id="stagecraft_apply_pack" class="menu_button">Apply Edited Pack</button>
+                        <details class="stagecraft-advanced-options">
+                            <summary>Raw pack JSON</summary>
+                            <textarea id="stagecraft_pack_editor" class="stagecraft-raw-editor" spellcheck="false">${escapeHtml(JSON.stringify(settings.pack, null, 2))}</textarea>
+                            <button id="stagecraft_apply_pack" class="menu_button" type="button">Apply JSON</button>
+                        </details>
                     </section>
                 </div>
             </div>
@@ -1200,7 +1427,10 @@ function stageEditorHtml(stage) {
 
     return `
         <div class="stagecraft-stage-editor">
-            <h4>Stage Editor</h4>
+            <div class="stagecraft-editor-title">
+                <span>Stage ${stage.id}</span>
+                <strong>${escapeHtml(stage.name || `Stage ${stage.id}`)}</strong>
+            </div>
             <label for="stagecraft_stage_name">Stage name</label>
             <input id="stagecraft_stage_name" type="text" value="${escapeHtml(stage.name || '')}">
             <label for="stagecraft_stage_behavior">Behavior</label>
@@ -1223,14 +1453,55 @@ function stageEditorHtml(stage) {
                 <span class="stagecraft-chip stagecraft-chip-transition">transition</span>
             </div>
             <div id="stagecraft_move_rows">${moveRows}</div>
-            <button id="stagecraft_save_stage" class="menu_button" type="button">Save Stage</button>
+            <button id="stagecraft_save_stage" class="menu_button" type="button"><i class="fa-solid fa-floppy-disk"></i><span>Save stage</span></button>
         </div>
     `;
+}
+
+function saveStageEditor(root, showNotice = false) {
+    if (!root || !root.querySelector('#stagecraft_stage_name')) return;
+
+    const stage = editedStage();
+    stage.name = elementValue(root, '#stagecraft_stage_name').trim() || `Stage ${stage.id}`;
+    stage.behavior = elementValue(root, '#stagecraft_stage_behavior').trim() || 'Describe the behavior for this stage.';
+    stage.advanceThreshold = Math.max(1, Math.trunc(Number(elementValue(root, '#stagecraft_stage_threshold')) || 3));
+    stage.advanceConditions = elementValue(root, '#stagecraft_stage_conditions')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+    stage.moves = Array.prototype.slice.call(root.querySelectorAll('.stagecraft-move-row')).map(row => normalizeMove({
+        kind: elementValue(row, '.stagecraft_move_kind') || 'action',
+        label: elementValue(row, '.stagecraft_move_label'),
+        text: elementValue(row, '.stagecraft_move_text'),
+        trigger: elementValue(row, '.stagecraft_move_trigger'),
+        intensity: elementValue(row, '.stagecraft_move_intensity') || 1,
+        progress: elementValue(row, '.stagecraft_move_progress') || 0,
+    }));
+    migrateStageMoves(stage);
+    saveSettings();
+    if (showNotice) notify('success', 'Stage saved.');
 }
 
 function bindPanel() {
     const root = document.getElementById('stagecraft_panel');
     if (!root) return;
+
+    root.querySelectorAll('.stagecraft-tab').forEach(button => {
+        button.addEventListener('click', () => {
+            activePanelTab = button.dataset.tab || 'chat';
+            root.querySelectorAll('.stagecraft-tab').forEach(item => {
+                const active = item.dataset.tab === activePanelTab;
+                item.classList.toggle('is-active', active);
+                item.setAttribute('aria-selected', String(active));
+            });
+            root.querySelectorAll('.stagecraft-tab-panel').forEach(panel => {
+                panel.classList.toggle('is-active', panel.dataset.panel === activePanelTab);
+            });
+        });
+    });
+    root.querySelectorAll('.stagecraft-stage-step').forEach(button => {
+        button.addEventListener('click', () => setStage(button.dataset.stage, 'timeline'));
+    });
 
     addListener(root, '#stagecraft_enabled', 'change', event => {
         getSettings().enabled = event.target.checked;
@@ -1242,6 +1513,15 @@ function bindPanel() {
     });
     addListener(root, '#stagecraft_markers', 'change', event => {
         getSettings().markerAutomation = event.target.checked;
+        saveSettings();
+        renderPanel();
+    });
+    addListener(root, '#stagecraft_scrub_markers', 'change', event => {
+        getSettings().scrubMarkers = event.target.checked;
+        saveSettings();
+    });
+    addListener(root, '#stagecraft_progress_target', 'change', event => {
+        getSettings().advanceOnProgressTarget = event.target.checked;
         saveSettings();
     });
     addListener(root, '#stagecraft_lists', 'change', event => {
@@ -1276,12 +1556,14 @@ function bindPanel() {
         renderPanel();
     });
     addListener(root, '#stagecraft_edit_stage', 'change', event => {
+        saveStageEditor(root);
         const settings = getSettings();
         settings.editorStage = normalizeStage(event.target.value, settings.pack);
         saveSettings();
         renderPanel();
     });
     addListener(root, '#stagecraft_add_move', 'click', () => {
+        saveStageEditor(root);
         const stage = editedStage();
         stage.moves.push(normalizeMove('New move.', 'action'));
         saveSettings();
@@ -1289,6 +1571,7 @@ function bindPanel() {
     });
     root.querySelectorAll('.stagecraft_delete_move').forEach(button => {
         button.addEventListener('click', event => {
+            saveStageEditor(root);
             const row = event.target.closest('.stagecraft-move-row');
             const index = Number(row && row.dataset ? row.dataset.index : undefined);
             const stage = editedStage();
@@ -1301,27 +1584,13 @@ function bindPanel() {
         });
     });
     addListener(root, '#stagecraft_save_stage', 'click', () => {
-        const stage = editedStage();
-        stage.name = elementValue(root, '#stagecraft_stage_name').trim() || `Stage ${stage.id}`;
-        stage.behavior = elementValue(root, '#stagecraft_stage_behavior').trim() || 'Describe the behavior for this stage.';
-        stage.advanceThreshold = Math.max(1, Math.trunc(Number(elementValue(root, '#stagecraft_stage_threshold')) || 3));
-        stage.advanceConditions = elementValue(root, '#stagecraft_stage_conditions')
-            .split(/\r?\n/)
-            .map(line => line.trim())
-            .filter(Boolean);
-        stage.moves = Array.prototype.slice.call(root.querySelectorAll('.stagecraft-move-row')).map(row => normalizeMove({
-            kind: elementValue(row, '.stagecraft_move_kind') || 'action',
-            label: elementValue(row, '.stagecraft_move_label'),
-            text: elementValue(row, '.stagecraft_move_text'),
-            trigger: elementValue(row, '.stagecraft_move_trigger'),
-            intensity: elementValue(row, '.stagecraft_move_intensity') || 1,
-            progress: elementValue(row, '.stagecraft_move_progress') || 0,
-        }));
-        migrateStageMoves(stage);
-        saveSettings();
+        saveStageEditor(root, true);
         renderPanel();
-        notify('success', 'Stage saved.');
     });
+    const editor = root.querySelector('.stagecraft-stage-editor');
+    if (editor) {
+        editor.addEventListener('change', () => saveStageEditor(root));
+    }
     addListener(root, '#stagecraft_stage_count', 'change', event => {
         const settings = getSettings();
         resizePack(settings.pack, event.target.value);
@@ -1352,8 +1621,11 @@ function bindPanel() {
     });
     addListener(root, '#stagecraft_prev', 'click', () => regressStage());
     addListener(root, '#stagecraft_progress', 'click', () => addProgress(1));
+    addListener(root, '#stagecraft_progress_down', 'click', () => addProgress(-1));
     addListener(root, '#stagecraft_next', 'click', () => advanceStage('manual'));
-    addListener(root, '#stagecraft_reset', 'click', () => resetState());
+    addListener(root, '#stagecraft_reset', 'click', () => {
+        if (globalThis.confirm('Reset Stagecraft progression for this chat?')) resetState();
+    });
     addListener(root, '#stagecraft_gen_skeleton', 'click', () => void generatePackFromGoal(false));
     addListener(root, '#stagecraft_gen_pack', 'click', () => void generatePackFromGoal(true));
     addListener(root, '#stagecraft_field_count', 'input', event => {
@@ -1364,6 +1636,12 @@ function bindPanel() {
     addListener(root, '#stagecraft_gen_rewards', 'click', () => void generateStageMoves('reward'));
     addListener(root, '#stagecraft_gen_punishments', 'click', () => void generateStageMoves('punishment'));
     addListener(root, '#stagecraft_gen_conditions', 'click', () => void generateStageConditions());
+    addListener(root, '#stagecraft_gen_bundle', 'click', () => void generateStageBundle());
+    addListener(root, '#stagecraft_apply_generation', 'click', () => applyPendingGeneration());
+    addListener(root, '#stagecraft_discard_generation', 'click', () => {
+        pendingGeneration = null;
+        renderPanel();
+    });
     addListener(root, '#stagecraft_import', 'change', event => importPack(event.target.files && event.target.files[0]));
     addListener(root, '#stagecraft_export', 'click', () => exportPack());
     addListener(root, '#stagecraft_apply_pack', 'click', () => {

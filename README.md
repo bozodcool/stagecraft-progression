@@ -17,12 +17,15 @@ Then restart or reload SillyTavern and enable **Stagecraft Progression** in the 
 
 - Stores `stage`, `progress`, and history in chat metadata.
 - Injects the active stage before each generation through a prompt interceptor.
+- Organizes controls into Current Chat, Stages, Generate, and Settings tabs.
 - Supports configurable stage counts from 1 to 50.
 - Lets you manually advance, regress, reset, and lock the stage.
+- Can advance when the progress counter reaches the active stage target.
 - Can automatically test for advancement every X assistant turns using a configurable percent chance.
 - Can pick a forced action move only every X assistant turns, so stages do not fire on every reply.
 - Can generate action moves, reward moves, punishment moves, or advancement conditions for the selected stage from a short concept note.
 - Can generate a stage skeleton or full pack from a short character/progression goal.
+- Shows generated content for review before applying it to a stage or pack.
 - Can react to assistant control markers:
   - `[stagecraft:advance]`
   - `[stagecraft:regress]`
@@ -66,3 +69,5 @@ Action selection has its own pacing. Set **Pick action every X assistant turns**
 To fill stage content faster, select the current stage, write a short note in **Stage field concept**, choose the item count, and click one of the generate buttons. Stagecraft asks the active LLM for a JSON array and writes the result as moves or advancement conditions.
 
 To create a pack from a concept, set the stage count, write a goal in **Character / progression goal**, then click **Generate Stage Skeleton** or **Generate Full Pack**. Skeleton generation creates stage names, behavior, and advancement conditions. Full pack generation also creates moves for each stage.
+
+Generated packs, moves, and conditions are shown in a review panel. Apply the preview to update the pack, or discard it without changing existing content.

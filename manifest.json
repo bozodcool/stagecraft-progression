@@ -1,10 +1,10 @@
 {
   "display_name": "Stagecraft Progression",
   "loading_order": 50,
-  "js": "index.js?v=0.1.1",
-  "css": "style.css",
+  "js": "index.js?v=0.2.1",
+  "css": "style.css?v=0.2.1",
   "author": "Codex + Bozid",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "homePage": "https://github.com/bozodcool/stagecraft-progression",
   "auto_update": false,
   "minimum_client_version": "1.12.0",
