@@ -96,6 +96,10 @@ function writeClipboard(text) {
     return Promise.resolve();
 }
 
+const MOVE_KINDS = ['action', 'reward', 'punishment', 'temptation', 'withholding', 'reveal', 'repair', 'transition'];
+const PRIMARY_MOVE_KINDS = ['action', 'reward', 'punishment', 'temptation', 'withholding', 'reveal'];
+const SUPPORT_MOVE_KINDS = ['repair', 'transition'];
+
 function normalizeStage(stage, pack) {
     const stages = pack && Array.isArray(pack.stages) ? pack.stages : [];
     const maxStage = Math.max(1, Number(pack && pack.stageCount) || stages.length || 7);
@@ -315,6 +319,8 @@ function getState() {
     state.progress = Number.isFinite(Number(state.progress)) ? Number(state.progress) : 0;
     state.assistantTurns = Number.isFinite(Number(state.assistantTurns)) ? Number(state.assistantTurns) : 0;
     state.history = state.history || [];
+    state.activeStageHistory = ensureStageHistory(state);
+    state.stageArchives = Array.isArray(state.stageArchives) ? state.stageArchives : [];
     return state;
 }
 
@@ -349,6 +355,145 @@ function sample(list) {
     return list[Math.floor(Math.random() * list.length)];
 }
 
+function createStageHistory(stageId) {
+    return {
+        stageId: Number(stageId) || 1,
+        startedAt: new Date().toISOString(),
+        updatedAt: '',
+        total: 0,
+        recent: [],
+        byKind: {
+            action: [],
+            reward: [],
+            punishment: [],
+            temptation: [],
+            withholding: [],
+            reveal: [],
+            repair: [],
+            transition: [],
+            other: [],
+        },
+    };
+}
+
+function ensureStageHistory(state) {
+    if (!state.activeStageHistory || typeof state.activeStageHistory !== 'object') {
+        state.activeStageHistory = createStageHistory(state.stage);
+    }
+
+    if (Number(state.activeStageHistory.stageId) !== Number(state.stage)) {
+        state.activeStageHistory = createStageHistory(state.stage);
+    }
+
+    if (!Array.isArray(state.stageArchives)) {
+        state.stageArchives = [];
+    }
+
+    return state.activeStageHistory;
+}
+
+function moveKey(move) {
+    if (!move) return '';
+    return [
+        String(move.kind || '').trim().toLowerCase(),
+        String(move.label || '').trim().toLowerCase(),
+        String(move.text || '').trim().toLowerCase(),
+    ].join('||');
+}
+
+function slugPart(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 24);
+}
+
+function archiveActiveStageHistory(state, reason = 'stage change') {
+    const current = ensureStageHistory(state);
+    if (!current.total && !current.recent.length) return;
+
+    state.stageArchives = Array.isArray(state.stageArchives) ? state.stageArchives : [];
+    state.stageArchives.unshift({
+        ...structuredClone(current),
+        endedAt: new Date().toISOString(),
+        reason,
+    });
+    state.stageArchives = state.stageArchives.slice(0, 12);
+}
+
+function recordStageEvent(state, kind, move = null, source = 'system') {
+    const history = ensureStageHistory(state);
+    const normalizedKind = history.byKind[kind] ? kind : 'other';
+    const entry = {
+        at: new Date().toISOString(),
+        kind: normalizedKind,
+        source,
+        moveKey: moveKey(move),
+        label: move && move.label ? String(move.label) : '',
+        text: move && move.text ? String(move.text) : '',
+        progress: move ? Math.trunc(Number(move.progress) || 0) : 0,
+        intensity: move ? Math.max(1, Math.min(10, Math.trunc(Number(move.intensity) || 1))) : 0,
+        trigger: move && move.trigger ? String(move.trigger) : '',
+    };
+
+    history.updatedAt = entry.at;
+    history.total += 1;
+    history.recent.unshift(entry);
+    history.recent = history.recent.slice(0, 10);
+    history.byKind[normalizedKind].unshift(entry);
+    history.byKind[normalizedKind] = history.byKind[normalizedKind].slice(0, 12);
+}
+
+function sampleStageMove(state, stage, kind) {
+    const moves = movesByKind(stage, kind);
+    if (!moves.length) return '';
+
+    const history = ensureStageHistory(state);
+    const recentKeys = new Set(
+        (history.byKind[kind] || [])
+            .map(entry => entry.moveKey)
+            .filter(Boolean)
+            .slice(0, 2),
+    );
+    const usedKeys = new Set(
+        (history.byKind[kind] || [])
+            .map(entry => entry.moveKey)
+            .filter(Boolean),
+    );
+
+    const freshMoves = moves.filter(move => !usedKeys.has(moveKey(move)));
+    if (freshMoves.length) return sample(freshMoves);
+
+    const cooledMoves = moves.filter(move => !recentKeys.has(moveKey(move)));
+    if (cooledMoves.length) return sample(cooledMoves);
+
+    return sample(moves);
+}
+
+function isMoveConsumed(state, move) {
+    const history = ensureStageHistory(state);
+    const key = moveKey(move);
+    return Object.values(history.byKind || {}).some(entries =>
+        Array.isArray(entries) && entries.some(entry => entry.moveKey === key),
+    );
+}
+
+function availableMovesByKind(state, stage, kind) {
+    return movesByKind(stage, kind).filter(move => !isMoveConsumed(state, move));
+}
+
+function tokenizedMoves(state, stage, kind) {
+    return availableMovesByKind(state, stage, kind).map((move, index) => ({
+        token: `${kind}-${index + 1}-${slugPart(move.label || move.text || kind) || 'move'}`,
+        move,
+    }));
+}
+
+function findTokenizedMove(state, stage, kind, token) {
+    return tokenizedMoves(state, stage, kind).find(item => item.token === token) || null;
+}
+
 function movesByKind(stage, kind) {
     return (stage.moves || []).filter(move => move.kind === kind);
 }
@@ -370,8 +515,14 @@ function setStage(stage, reason = 'manual') {
     const settings = getSettings();
     const state = getState();
     const previous = state.stage;
-    state.stage = normalizeStage(stage, settings.pack);
+    const nextStage = normalizeStage(stage, settings.pack);
+    if (Number(previous) !== Number(nextStage)) {
+        archiveActiveStageHistory(state, reason);
+    }
+    state.stage = nextStage;
     state.progress = 0;
+    state.lastAction = '';
+    state.activeStageHistory = createStageHistory(state.stage);
     state.history.unshift({
         at: new Date().toISOString(),
         type: 'stage',
@@ -439,6 +590,8 @@ function resetState() {
         lastOutcome: '',
         lastInjectionNotice: '',
         lastAction: '',
+        activeStageHistory: createStageHistory(1),
+        stageArchives: [],
         history: [{ at: new Date().toISOString(), type: 'reset' }],
     };
     void saveState();
@@ -449,24 +602,24 @@ function buildInjection(type = 'normal') {
     const settings = getSettings();
     const state = getState();
     const stage = activeStage();
-    const roll = Math.floor(Math.random() * 100) + 1;
-    const actionChance = Number(settings.actionChance || settings.pack.defaultActionChance || 35);
-    const assistantTurns = Math.max(0, Number(state.assistantTurns) || 0);
-    const actionEveryTurns = Math.max(1, Math.trunc(Number(settings.actionEveryTurns) || 1));
-    const isActionTurn = assistantTurns === 0 || (assistantTurns + 1) % actionEveryTurns === 0;
-    const shouldAct = isActionTurn && roll <= actionChance;
-    const actionMoves = movesByKind(stage, 'action');
-    const pickedAction = shouldAct ? sample(actionMoves) : '';
     const threshold = Number(stage.advanceThreshold || settings.pack.defaultAdvanceThreshold || 3);
+    const primaryKinds = PRIMARY_MOVE_KINDS;
+    const supportKinds = SUPPORT_MOVE_KINDS;
+    const availablePrimary = primaryKinds.map(kind => [kind, tokenizedMoves(state, stage, kind)]);
+    const availableSupport = supportKinds.map(kind => [kind, tokenizedMoves(state, stage, kind)]);
+    const availableSummary = [...availablePrimary, ...availableSupport]
+        .filter(([, entries]) => entries.length)
+        .map(([kind, entries]) => `${entries.length} ${kind}`)
+        .join(', ');
 
-    state.lastAction = pickedAction ? formatMove(pickedAction) : '';
-    state.lastOutcome = !isActionTurn
-        ? `Action interval ${assistantTurns + 1}/${actionEveryTurns}: no action test`
-        : shouldAct ? `Action roll ${roll}/${actionChance}: active` : `Action roll ${roll}/${actionChance}: no forced action`;
+    state.lastAction = '';
+    state.lastOutcome = availableSummary
+        ? `Context-driven selection active: ${availableSummary} still available`
+        : 'Context-driven selection active: no unused moves remain in this stage';
 
     const lines = [
         '[STAGECRAFT PROGRESSION - ACTIVE]',
-        'Injection code: 0.2.1',
+        'Injection code: 0.3.0',
         `Pack: ${settings.pack.name}`,
         `Progress counter: ${state.progress}/${threshold}`,
         `Generation type: ${type}`,
@@ -478,20 +631,28 @@ function buildInjection(type = 'normal') {
         lines.splice(2, 0, 'Current stage: hidden from prose; continue using the active stage behavior below.');
     }
 
-    if (settings.displayRoll) {
-        lines.push('', `Roll result: ${state.lastOutcome}`);
-    }
+    lines.push(
+        '',
+        'Decision model:',
+        'First judge the current context.',
+        'Decide whether this moment calls for one unused action, reward, punishment, support move, or no special move.',
+        'Use at most one listed move in a reply.',
+        'If you use a listed move, append its exact hidden consume marker at the very end of the reply.',
+        'If no listed move fits, continue naturally and do not use a marker.',
+    );
 
-    if (settings.includeRandomPick) {
-        lines.push('', 'This turn selection:', shouldAct ? `- ${formatMove(pickedAction)}` : '- No forced action this turn; continue naturally.');
-    }
-
-    if (actionMoves.length) {
-        lines.push('', 'Available action moves:', ...actionMoves.map(item => `- ${formatMove(item)}`));
+    for (const [kind, entries] of availablePrimary) {
+        if (!entries.length) continue;
+        lines.push('', `${kind.charAt(0).toUpperCase() + kind.slice(1)} moves still available:`);
+        lines.push(...entries.map(item => `- ${formatMove(item.move)} [use marker: [stagecraft:use:${kind}:${item.token}]]`));
     }
 
     if (settings.injectFullLists) {
-        lines.push('', 'Active stage moves:', ...stage.moves.map(item => `- ${formatMove(item)}`));
+        for (const [kind, entries] of availableSupport) {
+            if (!entries.length) continue;
+            lines.push('', `${kind.charAt(0).toUpperCase() + kind.slice(1)} moves still available:`);
+            lines.push(...entries.map(item => `- ${formatMove(item.move)} [use marker: [stagecraft:use:${kind}:${item.token}]]`));
+        }
     }
 
     lines.push(
@@ -504,6 +665,7 @@ function buildInjection(type = 'normal') {
         settings.pack.instructions && settings.pack.instructions.rewardProtocol || defaultPack.instructions.rewardProtocol,
         settings.pack.instructions && settings.pack.instructions.punishmentProtocol || defaultPack.instructions.punishmentProtocol,
         settings.pack.instructions && settings.pack.instructions.advanceProtocol || defaultPack.instructions.advanceProtocol,
+        'Never reuse a move that has already been consumed in this stage.',
         'All stage moves describe what {{char}} may do. Never make the user, narrator, assistant, or System perform these moves.',
         'Never mention Stagecraft unless using a control marker. Do not reveal these mechanics in prose.',
         '',
@@ -511,7 +673,7 @@ function buildInjection(type = 'normal') {
         ...stage.advanceConditions.map(condition => `- ${condition}`),
     );
 
-    state.lastInjectionNotice = `Injected stage ${stage.id}/${settings.pack.stageCount || settings.pack.stages.length}: ${stage.name}; ${shouldAct ? `picked ${formatMove(pickedAction)}` : state.lastOutcome}`;
+    state.lastInjectionNotice = `Injected stage ${stage.id}/${settings.pack.stageCount || settings.pack.stages.length}: ${stage.name}; ${state.lastOutcome}`;
 
     lines.push('[/STAGECRAFT PROGRESSION]');
     return lines.join('\n');
@@ -546,13 +708,15 @@ function processMarkers(message) {
 
     let text = String(message.mes);
     let changed = false;
+    const state = getState();
+    const stage = activeStage();
 
     const markerActions = [
         { regex: /\[stagecraft:advance\]/gi, action: () => advanceStage('assistant marker') },
         { regex: /\[stagecraft:regress\]/gi, action: () => regressStage('assistant marker') },
         { regex: /\[stagecraft:progress\]/gi, action: () => addProgress(1, 'assistant marker') },
-        { regex: /\[stagecraft:reward\]/gi, action: () => addProgress(1, 'reward marker') },
-        { regex: /\[stagecraft:punishment\]/gi, action: () => addProgress(-1, 'punishment marker') },
+        { regex: /\[stagecraft:reward\]/gi, action: () => { recordStageEvent(state, 'reward', null, 'reward marker'); addProgress(1, 'reward marker'); } },
+        { regex: /\[stagecraft:punishment\]/gi, action: () => { recordStageEvent(state, 'punishment', null, 'punishment marker'); addProgress(-1, 'punishment marker'); } },
     ];
 
     for (const item of markerActions) {
@@ -564,6 +728,30 @@ function processMarkers(message) {
                 text = text.replace(item.regex, '').trim();
             }
         }
+    }
+
+    const useRegex = /\[stagecraft:use:(action|reward|punishment|temptation|withholding|reveal|repair|transition):([a-z0-9-]+)\]/gi;
+    let useMatch;
+    while ((useMatch = useRegex.exec(text)) !== null) {
+        const kind = String(useMatch[1] || '').toLowerCase();
+        const token = String(useMatch[2] || '');
+        const matched = findTokenizedMove(state, stage, kind, token);
+        if (!matched) continue;
+
+        recordStageEvent(state, kind, matched.move, 'assistant use');
+        state.lastAction = formatMove(matched.move);
+        state.lastOutcome = `Consumed ${kind} move: ${matched.move.label || matched.move.text || token}`;
+        if (Number(matched.move.progress)) {
+            addProgress(Number(matched.move.progress), `${kind} move`);
+        } else {
+            void saveState();
+            renderPanel();
+        }
+        changed = true;
+    }
+
+    if (changed && settings.scrubMarkers) {
+        text = text.replace(useRegex, '').trim();
     }
 
     if (changed && settings.scrubMarkers) {
@@ -784,7 +972,7 @@ function buildPackPrompt(goal, stageCount, fullPack = true) {
             'Each stage must include exactly 2 moves.',
             'Each move must include: kind, label, text, trigger, intensity, progress.',
             'Use compact move text of 1 sentence each.',
-            'Use move kinds such as action, reward, punishment, test, repair, ritual, and transition.',
+            'Use move kinds such as action, reward, punishment, temptation, withholding, reveal, repair, and transition.',
             'Every generated move text must explicitly use {{char}} as the actor.',
         ].join('\n')
         : [
@@ -897,9 +1085,11 @@ function buildMovePrompt(stage, kind, concept, count) {
         action: 'normal actions {{char}} can initiate',
         reward: 'reward moves/payoffs for acceptance or success',
         punishment: 'punishment moves/setbacks/consequences for refusal, failure, or tension',
-        test: 'test moves that probe whether the user is ready for escalation',
+        temptation: 'temptation moves that lure {{user}} forward with desire, promise, or risk',
+        withholding: 'withholding moves that create distance, delay, silence, denied access, or partial retreat',
+        reveal: 'reveal moves that expose truth, vulnerability, motive, or hidden information',
         repair: 'repair moves that rebuild trust after tension',
-        ritual: 'ritual moves that reinforce the stage dynamic',
+        transition: 'transition moves that bridge this stage into the next one',
     };
 
     return [
@@ -947,7 +1137,7 @@ function buildStageBundlePrompt(stage, concept, count) {
         `"moves" must be a JSON array of exactly ${count} objects.`,
         '"advanceConditions" must be a JSON array of exactly 2 strings.',
         'Each move object must include: kind, label, text, trigger, intensity, progress.',
-        'Use move kinds such as action, reward, punishment, test, repair, ritual, and transition.',
+        'Use move kinds such as action, reward, punishment, temptation, withholding, reveal, repair, and transition.',
         'Label must be a short title of 2-5 words, not a full sentence.',
         'Text must be the full playable move.',
         'Use {{char}} as the actor in every move. Do not use System as an actor.',
@@ -1192,6 +1382,7 @@ function panelHtml(settings, state, stage) {
     const threshold = Number(stage.advanceThreshold || settings.pack.defaultAdvanceThreshold || 3);
     const stageCount = settings.pack.stageCount || settings.pack.stages.length || 7;
     const progressPercent = Math.min(100, Math.max(0, (Number(state.progress) / Math.max(1, threshold)) * 100));
+    const activeStageHistory = ensureStageHistory(state);
     const stageOptions = settings.pack.stages.map(item => {
         const selected = Number(item.id) === Number(state.stage) ? 'selected' : '';
         return `<option value="${item.id}" ${selected}>${item.id}. ${escapeHtml(item.name)}</option>`;
@@ -1208,10 +1399,23 @@ function panelHtml(settings, state, stage) {
         return `<button type="button" class="stagecraft-stage-step ${stateClass}" data-stage="${item.id}" title="${escapeHtml(item.name)}" aria-label="Stage ${item.id}: ${escapeHtml(item.name)}">${item.id}</button>`;
     }).join('<span class="stagecraft-stage-connector"></span>');
     const conditions = (stage.advanceConditions || []).map(condition => `<li>${escapeHtml(condition)}</li>`).join('');
+    const stageMoveHistory = Object.values(activeStageHistory.byKind || {})
+        .flatMap(entries => Array.isArray(entries) ? entries : [])
+        .sort((left, right) => String(right.at || '').localeCompare(String(left.at || '')))
+        .slice(0, 4)
+        .map(entry => `<li>${escapeHtml(entry.kind.charAt(0).toUpperCase() + entry.kind.slice(1))}: ${escapeHtml(entry.label || entry.text || 'Unnamed move')}</li>`)
+        .join('');
+    const stageMarkerHistory = ['reward', 'punishment']
+        .flatMap(kind => (activeStageHistory.byKind[kind] || []).slice(0, 2).map(entry => ({ ...entry, kind })))
+        .sort((left, right) => String(right.at || '').localeCompare(String(left.at || '')))
+        .slice(0, 4)
+        .map(entry => `<li>${escapeHtml(entry.kind.charAt(0).toUpperCase() + entry.kind.slice(1))}${entry.source ? ` via ${escapeHtml(entry.source)}` : ''}</li>`)
+        .join('');
     const activityRows = [
-        state.lastAction ? `<div><span>Selected action</span><strong>${escapeHtml(state.lastAction)}</strong></div>` : '',
-        state.lastOutcome ? `<div><span>Action pacing</span><strong>${escapeHtml(state.lastOutcome)}</strong></div>` : '',
+        state.lastAction ? `<div><span>Selected move</span><strong>${escapeHtml(state.lastAction)}</strong></div>` : '',
+        state.lastOutcome ? `<div><span>Decision status</span><strong>${escapeHtml(state.lastOutcome)}</strong></div>` : '',
         state.lastAdvanceTest ? `<div><span>Advancement</span><strong>${escapeHtml(state.lastAdvanceTest)}</strong></div>` : '',
+        activeStageHistory.total ? `<div><span>Stage memory</span><strong>${escapeHtml(`${activeStageHistory.total} tracked event${activeStageHistory.total === 1 ? '' : 's'} this stage`)}</strong></div>` : '',
         settings.showInjectionNotice && state.lastInjectionNotice
             ? `<div><span>Prompt injection</span><strong>${escapeHtml(state.lastInjectionNotice)}</strong></div>`
             : '',
@@ -1282,6 +1486,10 @@ function panelHtml(settings, state, stage) {
                                 <p>${escapeHtml(stage.behavior)}</p>
                                 <h5>Ready to advance when</h5>
                                 <ul>${conditions || '<li>No advancement conditions defined.</li>'}</ul>
+                                <h5>Used this stage</h5>
+                                <ul>${stageMoveHistory || '<li>No moves have been consumed in this stage yet.</li>'}</ul>
+                                <h5>Recent rewards / punishments</h5>
+                                <ul>${stageMarkerHistory || '<li>No reward or punishment markers recorded in this stage yet.</li>'}</ul>
                             </div>
                             <div class="stagecraft-activity">
                                 <h5>Latest activity</h5>
@@ -1342,11 +1550,8 @@ function panelHtml(settings, state, stage) {
 
                     <section class="${tabPanelClass('settings')}" data-panel="settings" role="tabpanel">
                         <div class="stagecraft-settings-group">
-                            <h4>Action pacing</h4>
-                            <div class="stagecraft-settings-grid">
-                                <label>Try an action every<input id="stagecraft_action_every" type="number" min="1" max="100" step="1" value="${settings.actionEveryTurns}"><span>assistant turns</span></label>
-                                <label>Chance on eligible turns<div class="stagecraft-range-row"><input id="stagecraft_chance" type="range" min="0" max="100" step="5" value="${settings.actionChance}"><strong id="stagecraft_chance_value">${settings.actionChance}%</strong></div></label>
-                            </div>
+                            <h4>Move selection</h4>
+                            <p>Stagecraft now exposes unused moves to the model by context. The model chooses whether a moment fits an action, reward, punishment, support move, or no special move, then consumes the exact move it used.</p>
                         </div>
                         <div class="stagecraft-settings-group">
                             <h4>Stage progression</h4>
@@ -1366,9 +1571,9 @@ function panelHtml(settings, state, stage) {
                             <summary>Prompt and debugging</summary>
                             <div class="stagecraft-option-list">
                                 <label class="checkbox_label"><input id="stagecraft_display_stage" type="checkbox" ${settings.displayStage ? 'checked' : ''}>Include current stage label in the prompt</label>
-                                <label class="checkbox_label"><input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>Include action roll result in the prompt</label>
+                                <label class="checkbox_label"><input id="stagecraft_display_roll" type="checkbox" ${settings.displayRoll ? 'checked' : ''}>Include decision summary in the prompt</label>
                                 <label class="checkbox_label"><input id="stagecraft_injection_notice" type="checkbox" ${settings.showInjectionNotice ? 'checked' : ''}>Show latest injection in Current Chat</label>
-                                <label class="checkbox_label"><input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>Inject every move from the active stage</label>
+                                <label class="checkbox_label"><input id="stagecraft_lists" type="checkbox" ${settings.injectFullLists ? 'checked' : ''}>Include support moves in the prompt</label>
                             </div>
                         </details>
                         <details class="stagecraft-advanced-options">
@@ -1403,7 +1608,7 @@ function stageEditorHtml(stage) {
             <div class="stagecraft-move-fields">
                 <label>Type
                     <select class="stagecraft_move_kind">
-                        ${['action', 'reward', 'punishment', 'test', 'repair', 'ritual', 'transition'].map(kind => `<option value="${kind}" ${move.kind === kind ? 'selected' : ''}>${kind}</option>`).join('')}
+                        ${MOVE_KINDS.map(kind => `<option value="${kind}" ${move.kind === kind ? 'selected' : ''}>${kind}</option>`).join('')}
                     </select>
                 </label>
                 <label>Short label
@@ -1447,9 +1652,10 @@ function stageEditorHtml(stage) {
                 <span class="stagecraft-chip stagecraft-chip-action">action</span>
                 <span class="stagecraft-chip stagecraft-chip-reward">reward</span>
                 <span class="stagecraft-chip stagecraft-chip-punishment">punishment</span>
-                <span class="stagecraft-chip stagecraft-chip-test">test</span>
+                <span class="stagecraft-chip stagecraft-chip-temptation">temptation</span>
+                <span class="stagecraft-chip stagecraft-chip-withholding">withholding</span>
+                <span class="stagecraft-chip stagecraft-chip-reveal">reveal</span>
                 <span class="stagecraft-chip stagecraft-chip-repair">repair</span>
-                <span class="stagecraft-chip stagecraft-chip-ritual">ritual</span>
                 <span class="stagecraft-chip stagecraft-chip-transition">transition</span>
             </div>
             <div id="stagecraft_move_rows">${moveRows}</div>

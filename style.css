@@ -417,9 +417,10 @@
 .stagecraft-chip-action { color: #4ea1ff; }
 .stagecraft-chip-reward { color: #59c36a; }
 .stagecraft-chip-punishment { color: #ef6461; }
-.stagecraft-chip-test { color: #f0b84f; }
+.stagecraft-chip-temptation { color: #f0b84f; }
+.stagecraft-chip-withholding { color: #94a3b8; }
+.stagecraft-chip-reveal { color: #c084fc; }
 .stagecraft-chip-repair { color: #38cfd9; }
-.stagecraft-chip-ritual { color: #c084fc; }
 .stagecraft-chip-transition { color: #fb923c; }
 
 .stagecraft-move-row {
@@ -456,9 +457,10 @@
 .stagecraft-move-action { border-left-color: #4ea1ff; }
 .stagecraft-move-reward { border-left-color: #59c36a; }
 .stagecraft-move-punishment { border-left-color: #ef6461; }
-.stagecraft-move-test { border-left-color: #f0b84f; }
+.stagecraft-move-temptation { border-left-color: #f0b84f; }
+.stagecraft-move-withholding { border-left-color: #94a3b8; }
+.stagecraft-move-reveal { border-left-color: #c084fc; }
 .stagecraft-move-repair { border-left-color: #38cfd9; }
-.stagecraft-move-ritual { border-left-color: #c084fc; }
 .stagecraft-move-transition { border-left-color: #fb923c; }
 
 .stagecraft-generate-block,
